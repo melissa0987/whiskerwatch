@@ -3,10 +3,10 @@
 -- =============================================
 DROP TABLE IF EXISTS customer_types CASCADE;
 DROP TABLE IF EXISTS pet_types CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS booking_statuses CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS pets CASCADE;
-DROP TABLE IF EXISTS sitter_profiles CASCADE;
-DROP TABLE IF EXISTS sitter_availability CASCADE;
 DROP TABLE IF EXISTS bookings CASCADE;
 
 -- =============================================
@@ -15,40 +15,50 @@ DROP TABLE IF EXISTS bookings CASCADE;
 -- 1. Customer Types Table
 CREATE TABLE customer_types (
     id SERIAL PRIMARY KEY,
-    type_name VARCHAR(20) UNIQUE NOT NULL, -- 'OWNER', 'SITTER', 'BOTH'
-    description TEXT
+    type_name VARCHAR(20) UNIQUE NOT NULL -- 'OWNER', 'SITTER', 'BOTH'
 );
 
 -- 2. Pet Types Table
 CREATE TABLE pet_types (
     id SERIAL PRIMARY KEY,
-    type_name VARCHAR(50) UNIQUE NOT NULL,
-    description TEXT
+    type_name VARCHAR(50) UNIQUE NOT NULL
 );
 
--- 3. Users Table
+-- 3. Roles Table
+CREATE TABLE roles (
+    id SERIAL PRIMARY KEY,
+    role_name VARCHAR(20) UNIQUE NOT NULL -- e.g. 'CUSTOMER', 'ADMIN'
+);
+
+-- 4. Booking Statuses Table
+CREATE TABLE booking_statuses (
+    id SERIAL PRIMARY KEY,
+    status_name VARCHAR(20) UNIQUE NOT NULL -- 'PENDING', 'CONFIRMED', etc.
+);
+
+-- 5. Users Table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     user_name VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(20) CHECK (role IN ('CUSTOMER', 'ADMIN')) NOT NULL,
-    customer_type VARCHAR(20) CHECK (customer_type IN ('OWNER', 'SITTER', 'BOTH')),
+    role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
+    customer_type_id INTEGER REFERENCES customer_types(id) ON DELETE RESTRICT,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     phone_number VARCHAR(20) UNIQUE NOT NULL,
     address TEXT NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT customer_type_check CHECK (
-        (role = 'CUSTOMER' AND customer_type IS NOT NULL) OR
-        (role = 'ADMIN' AND customer_type IS NULL)
+    CONSTRAINT role_customer_type_check CHECK (
+        (customer_type_id IS NOT NULL AND role_id = 1) OR -- assuming role_id 1 = 'CUSTOMER'
+        (customer_type_id IS NULL AND role_id != 1)
     )
 );
 
--- 4. Pets Table
+-- 6. Pets Table
 CREATE TABLE pets (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -62,38 +72,13 @@ CREATE TABLE pets (
     type_id INTEGER NOT NULL REFERENCES pet_types(id) ON DELETE RESTRICT
 );
 
--- 5. Sitter Profiles Table (for sitters' professional info)
-CREATE TABLE sitter_profiles (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    hourly_rate DECIMAL(8,2) NOT NULL CHECK (hourly_rate > 0),
-    experience_years INTEGER DEFAULT 0,
-    bio TEXT,
-    is_verified BOOLEAN DEFAULT FALSE,
-    max_pets_per_booking INTEGER DEFAULT 1,
-    available_services TEXT, -- JSON or comma-separated
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 6. Sitter Availability Table (for blocking availability)
-CREATE TABLE sitter_availability (
-    id SERIAL PRIMARY KEY,
-    sitter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    available_date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    is_blocked BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(sitter_id, available_date, start_time)
-);
-
 -- 7. Bookings Table
 CREATE TABLE bookings (
     id SERIAL PRIMARY KEY,
     booking_date DATE NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    status VARCHAR(20) CHECK (status IN ('PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED')) DEFAULT 'PENDING',
+    status_id INTEGER NOT NULL REFERENCES booking_statuses(id),
     total_cost DECIMAL(10, 2),
     special_requests TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -105,160 +90,177 @@ CREATE TABLE bookings (
 
 
 -- =============================================
---  INSERT STATEMENTS
+--  INSERT STATEMENTS FOR PET SITTING DATABASE
 -- =============================================
 
--- 1. CUSTOMER TYPES TABLE (owner -- sitter -- both)
-INSERT INTO customer_types (id, type_name, description) VALUES
-    (1, 'OWNER', 'Pet owners who need sitting services'),
-    (2, 'SITTER', 'Professional pet sitters providing services'),
-    (3, 'BOTH', 'Users who are both pet owners and sitters');
+-- 1. Insert Customer Types
+INSERT INTO customer_types (id, type_name) VALUES
+(1, 'OWNER'),
+(2, 'SITTER'),
+(3, 'BOTH');
 
+-- 2. Insert Pet Types
+INSERT INTO pet_types (id, type_name) VALUES
+(1, 'Dog'),
+(2, 'Cat'),
+(3, 'Bird'),
+(4, 'Fish'),
+(5, 'Rabbit'),
+(6, 'Hamster'),
+(7, 'Guinea Pig'),
+(8, 'Reptile'),
+(9, 'Ferret'),
+(10, 'Chinchilla');
 
--- 2. PET TYPES TABLE
-INSERT INTO pet_types (id, type_name, description) VALUES
-    (1, 'Dog', 'Domestic canines of all breeds and sizes'),
-    (2, 'Cat', 'Domestic felines including indoor and outdoor cats'),
-    (3, 'Bird', 'Pet birds including parrots, canaries, and finches'),
-    (4, 'Fish', 'Aquarium fish requiring feeding and tank maintenance'),
-    (5, 'Rabbit', 'Domestic rabbits kept as pets'),
-    (6, 'Hamster', 'Small rodent pets including Syrian and dwarf hamsters'),
-    (7, 'Guinea Pig', 'Cavy pets requiring daily care and interaction'),
-    (8, 'Reptile', 'Lizards, snakes, and other reptilian pets'),
-    (9, 'Ferret', 'Domestic ferrets requiring specialized care'),
-    (10, 'Turtle', 'Pet turtles and tortoises'),
-    (11, 'Horse', 'Equine animals requiring specialized care'),
-    (12, 'Goat', 'Pet goats and small livestock'),
-    (13, 'Pig', 'Pot-bellied pigs and other domestic pigs'),
-    (14, 'Chinchilla', 'Small furry pets with special temperature needs'),
-    (15, 'Hedgehog', 'Exotic small pets with unique care requirements'),
-    (16, 'Sugar Glider', 'Small marsupial pets requiring specialized diet'),
-    (17, 'Parrot', 'Large speaking birds with complex social needs'),
-    (18, 'Cockatiel', 'Medium-sized crested parrots'),
-    (19, 'Goldfish', 'Common aquarium fish requiring basic care'),
-    (20, 'Bearded Dragon', 'Popular reptilian pets requiring heat lamps'),
-    (21, 'Other', 'Other types of domestic pets');
+-- 3. Insert Roles
+INSERT INTO roles (id, role_name) VALUES
+(1, 'CUSTOMER'),
+(2, 'ADMIN');
 
+-- 4. Insert Booking Statuses
+INSERT INTO booking_statuses (id, status_name) VALUES
+(1, 'PENDING'),
+(2, 'CONFIRMED'),
+(3, 'IN_PROGRESS'),
+(4, 'COMPLETED'),
+(5, 'CANCELLED'),
+(6, 'REJECTED');
 
--- 3. USERS TABLE
-INSERT INTO users (id, user_name, email, password, role, customer_type, first_name, last_name, phone_number, address) VALUES
-    (1, 'john_doe', 'john.doe@email.com', 'password123', 'CUSTOMER', 'OWNER', 'John', 'Doe', '555-0101', '123 Main St, Toronto, ON'),
-    (2, 'jane_smith', 'jane.smith@email.com', 'password123', 'CUSTOMER', 'SITTER', 'Jane', 'Smith', '555-0102', '456 Oak Ave, Toronto, ON'),
-    (3, 'mike_wilson', 'mike.wilson@email.com', 'password123', 'CUSTOMER', 'BOTH', 'Mike', 'Wilson', '555-0103', '789 Pine Rd, Toronto, ON'),
-    (4, 'sarah_brown', 'sarah.brown@email.com', 'password123', 'CUSTOMER', 'OWNER', 'Sarah', 'Brown', '555-0104', '321 Elm St, Toronto, ON'),
-    (5, 'david_jones', 'david.jones@email.com', 'password123', 'CUSTOMER', 'SITTER', 'David', 'Jones', '555-0105', '654 Maple Dr, Toronto, ON'),
-    (6, 'lisa_garcia', 'lisa.garcia@email.com', 'password123', 'CUSTOMER', 'BOTH', 'Lisa', 'Garcia', '555-0106', '987 Cedar Ln, Toronto, ON'),
-    (7, 'tom_miller', 'tom.miller@email.com', 'password123', 'CUSTOMER', 'OWNER', 'Tom', 'Miller', '555-0107', '147 Birch St, Toronto, ON'),
-    (8, 'amy_davis', 'amy.davis@email.com', 'password123', 'CUSTOMER', 'SITTER', 'Amy', 'Davis', '555-0108', '258 Spruce Ave, Toronto, ON'),
-    (9, 'chris_taylor', 'chris.taylor@email.com', 'password123', 'CUSTOMER', 'BOTH', 'Chris', 'Taylor', '555-0109', '369 Willow Rd, Toronto, ON'),
-    (10, 'emma_white', 'emma.white@email.com', 'password123', 'CUSTOMER', 'OWNER', 'Emma', 'White', '555-0110', '741 Poplar St, Toronto, ON'),
-    (11, 'alex_martin', 'alex.martin@email.com', 'password123', 'CUSTOMER', 'SITTER', 'Alex', 'Martin', '555-0111', '852 Ash Dr, Toronto, ON'),
-    (12, 'olivia_lee', 'olivia.lee@email.com', 'password123', 'CUSTOMER', 'BOTH', 'Olivia', 'Lee', '555-0112', '963 Walnut Ln, Toronto, ON'),
-    (13, 'ryan_clark', 'ryan.clark@email.com', 'password123', 'CUSTOMER', 'OWNER', 'Ryan', 'Clark', '555-0113', '159 Cherry Ave, Toronto, ON'),
-    (14, 'sophie_hall', 'sophie.hall@email.com', 'password123', 'CUSTOMER', 'SITTER', 'Sophie', 'Hall', '555-0114', '357 Hickory St, Toronto, ON'),
-    (15, 'jason_young', 'jason.young@email.com', 'password123', 'CUSTOMER', 'BOTH', 'Jason', 'Young', '555-0115', '486 Sycamore Rd, Toronto, ON'),
-    (16, 'natalie_king', 'natalie.king@email.com', 'password123', 'CUSTOMER', 'OWNER', 'Natalie', 'King', '555-0116', '624 Beech Dr, Toronto, ON'),
-    (17, 'kevin_scott', 'kevin.scott@email.com', 'password123', 'CUSTOMER', 'SITTER', 'Kevin', 'Scott', '555-0117', '735 Fir Ln, Toronto, ON'),
-    (18, 'rachel_green', 'rachel.green@email.com', 'password123', 'CUSTOMER', 'BOTH', 'Rachel', 'Green', '555-0118', '846 Redwood Ave, Toronto, ON'),
-    (19, 'admin_user', 'admin@petsitting.com', 'adminpassword123', 'ADMIN', NULL, 'Admin', 'User', '555-0119', '100 Admin Plaza, Toronto, ON'),
-    (20, 'super_admin', 'superadmin@petsitting.com', 'adminpassword123', 'ADMIN', NULL, 'Super', 'Admin', '555-0120', '200 System St, Toronto, ON');
+-- 5. Insert Users (20+ records)
+INSERT INTO users (id, user_name, email, password, role_id, customer_type_id, first_name, last_name, phone_number, address) VALUES
+(1, 'sarah_jones', 'sarah.jones@email.com', 'hashed_password_1', 1, 1, 'Sarah', 'Jones', '555-0101', '123 Oak Street, Toronto, ON M4B 1Y2'),
+(2, 'mike_smith', 'mike.smith@email.com', 'hashed_password_2', 1, 2, 'Mike', 'Smith', '555-0102', '456 Maple Ave, Toronto, ON M5V 3A8'),
+(3, 'emma_wilson', 'emma.wilson@email.com', 'hashed_password_3', 1, 3, 'Emma', 'Wilson', '555-0103', '789 Pine Road, Mississauga, ON L5B 4K9'),
+(4, 'david_brown', 'david.brown@email.com', 'hashed_password_4', 1, 1, 'David', 'Brown', '555-0104', '321 Elm Street, Toronto, ON M6H 2X5'),
+(5, 'lisa_davis', 'lisa.davis@email.com', 'hashed_password_5', 1, 2, 'Lisa', 'Davis', '555-0105', '654 Cedar Lane, Brampton, ON L6T 5R3'),
+(6, 'james_miller', 'james.miller@email.com', 'hashed_password_6', 1, 3, 'James', 'Miller', '555-0106', '987 Birch Circle, Toronto, ON M4C 5E7'),
+(7, 'anna_garcia', 'anna.garcia@email.com', 'hashed_password_7', 1, 1, 'Anna', 'Garcia', '555-0107', '147 Spruce Way, Vaughan, ON L4J 8M2'),
+(8, 'robert_martinez', 'robert.martinez@email.com', 'hashed_password_8', 1, 2, 'Robert', 'Martinez', '555-0108', '258 Willow Drive, Richmond Hill, ON L4B 3N9'),
+(9, 'jessica_anderson', 'jessica.anderson@email.com', 'hashed_password_9', 1, 1, 'Jessica', 'Anderson', '555-0109', '369 Ash Boulevard, Markham, ON L3P 7K5'),
+(10, 'kevin_taylor', 'kevin.taylor@email.com', 'hashed_password_10', 1, 2, 'Kevin', 'Taylor', '555-0110', '741 Poplar Street, Toronto, ON M6P 1R8'),
+(11, 'michelle_thomas', 'michelle.thomas@email.com', 'hashed_password_11', 1, 3, 'Michelle', 'Thomas', '555-0111', '852 Cherry Lane, Etobicoke, ON M9C 4T6'),
+(12, 'christopher_white', 'christopher.white@email.com', 'hashed_password_12', 1, 1, 'Christopher', 'White', '555-0112', '963 Walnut Avenue, North York, ON M2N 6H3'),
+(13, 'amanda_harris', 'amanda.harris@email.com', 'hashed_password_13', 1, 2, 'Amanda', 'Harris', '555-0113', '159 Hickory Road, Scarborough, ON M1B 5G7'),
+(14, 'daniel_clark', 'daniel.clark@email.com', 'hashed_password_14', 1, 1, 'Daniel', 'Clark', '555-0114', '357 Chestnut Drive, Toronto, ON M5R 2L4'),
+(15, 'stephanie_lewis', 'stephanie.lewis@email.com', 'hashed_password_15', 1, 2, 'Stephanie', 'Lewis', '555-0115', '486 Beech Street, Mississauga, ON L5H 3J8'),
+(16, 'matthew_walker', 'matthew.walker@email.com', 'hashed_password_16', 1, 3, 'Matthew', 'Walker', '555-0116', '672 Sycamore Place, Burlington, ON L7M 4P2'),
+(17, 'nicole_hall', 'nicole.hall@email.com', 'hashed_password_17', 1, 1, 'Nicole', 'Hall', '555-0117', '793 Magnolia Court, Oakville, ON L6H 6W1'),
+(18, 'ryan_allen', 'ryan.allen@email.com', 'hashed_password_18', 1, 2, 'Ryan', 'Allen', '555-0118', '814 Dogwood Trail, Milton, ON L9T 7X5'),
+(19, 'lauren_young', 'lauren.young@email.com', 'hashed_password_19', 1, 1, 'Lauren', 'Young', '555-0119', '925 Redwood Heights, Georgetown, ON L7G 4R9'),
+(20, 'brandon_king', 'brandon.king@email.com', 'hashed_password_20', 1, 2, 'Brandon', 'King', '555-0120', '136 Cypress Gardens, Ajax, ON L1S 3M7'),
+(21, 'samantha_wright', 'samantha.wright@email.com', 'hashed_password_21', 1, 3, 'Samantha', 'Wright', '555-0121', '247 Fir Ridge, Pickering, ON L1V 2K4'),
+(22, 'tyler_lopez', 'tyler.lopez@email.com', 'hashed_password_22', 1, 1, 'Tyler', 'Lopez', '555-0122', '358 Hemlock Valley, Whitby, ON L1N 8P6'),
+(23, 'admin_user', 'admin@petsitting.com', 'admin_hashed_password', 2, NULL, 'Admin', 'User', '555-0000', '1 Admin Plaza, Toronto, ON M5H 2N2');
 
-
--- 4. PETS TABLE (20 INSERT STATEMENTS)
+-- 6. Insert Pets (20+ records)
 INSERT INTO pets (id, name, age, breed, weight, special_instructions, owner_id, type_id) VALUES
-    (1, 'Buddy', 3, 'Golden Retriever', 65.50, 'Needs medication twice daily', 1, 1),
-    (2, 'Whiskers', 2, 'Persian Cat', 8.20, 'Indoor only, very shy', 4, 2),
-    (3, 'Charlie', 5, 'Labrador Mix', 55.30, 'Loves walks, good with kids', 7, 1),
-    (4, 'Luna', 1, 'Siamese Cat', 6.80, 'Playful, needs interactive toys', 10, 2),
-    (5, 'Max', 4, 'German Shepherd', 75.40, 'Well-trained, follows commands', 13, 1),
-    (6, 'Bella', 6, 'Maine Coon', 12.10, 'Senior cat, gentle handling required', 16, 2),
-    (7, 'Rocky', 2, 'Bulldog', 45.60, 'Short walks only, breathing issues', 3, 1),
-    (8, 'Mittens', 3, 'Domestic Shorthair', 9.50, 'Loves sunbathing by windows', 6, 2),
-    (9, 'Zeus', 7, 'Great Dane', 120.80, 'Giant breed, gentle giant personality', 9, 1),
-    (10, 'Princess', 4, 'Ragdoll Cat', 10.30, 'Very docile, enjoys brushing', 12, 2),
-    (11, 'Scout', 1, 'Border Collie', 35.70, 'High energy, needs mental stimulation', 15, 1),
-    (12, 'Shadow', 5, 'Black Cat', 7.90, 'Outdoor cat, independent nature', 18, 2),
-    (13, 'Duke', 8, 'Rottweiler', 85.20, 'Senior dog, joint supplements needed', 1, 1),
-    (14, 'Cleo', 2, 'Egyptian Mau', 8.40, 'Fast runner, needs secure enclosure', 4, 2),
-    (15, 'Bear', 3, 'Newfoundland', 110.60, 'Water lover, drools frequently', 7, 1),
-    (16, 'Ginger', 4, 'Orange Tabby', 11.20, 'Food motivated, portion control', 10, 2),
-    (17, 'Thor', 2, 'Husky', 60.90, 'Escape artist, secure fencing required', 13, 1),
-    (18, 'Patches', 6, 'Calico Cat', 9.80, 'Three-legged, special mobility needs', 16, 2),
-    (19, 'Ace', 5, 'Pit Bull Mix', 55.40, 'Friendly but strong, experienced handler', 3, 1),
-    (20, 'Smokey', 1, 'Russian Blue', 7.60, 'Quiet cat, prefers calm environments', 6, 2);
+(1, 'Buddy', 3, 'Golden Retriever', 65.50, 'Needs medication twice daily. Very friendly with other dogs.', 1, 1),
+(2, 'Whiskers', 2, 'Persian Cat', 8.20, 'Indoor cat only. Loves to hide under beds.', 4, 2),
+(3, 'Charlie', 5, 'Labrador Mix', 55.30, 'Energetic, needs long walks. Good with children.', 7, 1),
+(4, 'Fluffy', 1, 'Maine Coon', 12.80, 'Requires special diet food. Very social.', 9, 2),
+(5, 'Max', 4, 'German Shepherd', 75.00, 'Well-trained, knows basic commands. Protective but gentle.', 14, 1),
+(6, 'Luna', 6, 'Siamese Cat', 7.50, 'Vocal cat, likes to "talk". Prefers quiet environments.', 17, 2),
+(7, 'Rocky', 2, 'Bulldog', 45.20, 'Breathing issues, avoid overexertion. Very gentle.', 19, 1),
+(8, 'Mittens', 3, 'Tabby Cat', 9.10, 'Outdoor/indoor cat. Comes when called.', 22, 2),
+(9, 'Duke', 7, 'Rottweiler', 85.60, 'Senior dog, needs gentle exercise. Great temperament.', 1, 1),
+(10, 'Princess', 1, 'Ragdoll Cat', 6.80, 'Very docile, loves being held. Indoor only.', 4, 2),
+(11, 'Pip', 2, 'Canary', 0.05, 'Sings in the morning. Cage needs daily cleaning.', 7, 3),
+(12, 'Goldie', 1, 'Goldfish', 0.10, 'Feed twice daily, small portions. Tank temperature important.', 9, 4),
+(13, 'Buster', 4, 'Beagle', 28.40, 'Food motivated, great for training. Loves walks.', 14, 1),
+(14, 'Shadow', 5, 'Black Cat', 10.20, 'Very independent, low maintenance. Indoor/outdoor.', 17, 2),
+(15, 'Rex', 3, 'German Pointer', 62.70, 'High energy, needs lots of exercise. Well-behaved.', 19, 1),
+(16, 'Coco', 2, 'Cockatiel', 0.08, 'Talks and whistles. Likes interaction and music.', 22, 3),
+(17, 'Nemo', 2, 'Betta Fish', 0.02, 'Aggressive to other fish. Keep alone. Weekly water changes.', 1, 4),
+(18, 'Daisy', 6, 'Cocker Spaniel', 32.10, 'Senior dog, arthritis medication needed. Very sweet.', 4, 1),
+(19, 'Tiger', 4, 'Orange Tabby', 11.50, 'Playful and active. Loves laser pointers and toys.', 7, 2),
+(20, 'Ace', 1, 'Husky Puppy', 25.30, 'Very energetic puppy, needs constant supervision.', 9, 1),
+(21, 'Snowball', 3, 'White Rabbit', 3.20, 'Litter trained. Needs fresh vegetables daily.', 14, 5),
+(22, 'Peanut', 2, 'Hamster', 0.15, 'Nocturnal, active at night. Clean cage weekly.', 17, 6),
+(23, 'Bella', 5, 'Border Collie', 48.90, 'Extremely intelligent, needs mental stimulation.', 19, 1),
+(24, 'Smokey', 7, 'Russian Blue', 8.90, 'Quiet and reserved. Prefers routine and calm environment.', 22, 2);
+
+-- 7. Insert Bookings (20+ records)
+INSERT INTO bookings (id, booking_date, start_time, end_time, status_id, total_cost, special_requests, pet_id, owner_id, sitter_id) VALUES
+(1, '2025-08-05', '09:00:00', '12:00:00', 2, 75.00, 'Please give Buddy his medication at 10 AM', 1, 1, 2),
+(2, '2025-08-05', '14:00:00', '18:00:00', 2, 120.00, 'Whiskers likes to hide - please be patient', 2, 4, 3),
+(3, '2025-08-06', '10:00:00', '15:00:00', 1, 125.00, 'Charlie needs a long walk in the park', 3, 7, 2),
+(4, '2025-08-06', '16:00:00', '19:00:00', 2, 96.00, 'Fluffy is very social and loves attention', 4, 9, 8),
+(5, '2025-08-07', '08:00:00', '11:00:00', 4, 105.00, 'Max knows sit, stay, and come commands', 5, 14, 6),
+(6, '2025-08-07', '13:00:00', '16:00:00', 2, 78.00, 'Luna will talk to you - she is very vocal', 6, 17, 11),
+(7, '2025-08-08', '09:00:00', '13:00:00', 3, 112.00, 'Rocky gets tired easily, short walks only', 7, 19, 8),
+(8, '2025-08-08', '15:00:00', '18:00:00', 2, 78.00, 'Mittens comes when you call her name', 8, 22, 13),
+(9, '2025-08-09', '08:00:00', '11:00:00', 1, 60.00, 'Duke is gentle but moves slowly due to age', 9, 1, 5),
+(10, '2025-08-09', '14:00:00', '17:00:00', 2, 96.00, 'Princess loves being petted and held', 10, 4, 10),
+(11, '2025-08-10', '10:00:00', '12:00:00', 2, 48.00, 'Clean Pips cage and refill food/water', 11, 7, 5),
+(12, '2025-08-10', '15:00:00', '18:00:00', 4, 81.00, 'Feed Goldie small amount twice during visit', 12, 9, 20),
+(13, '2025-08-11', '09:00:00', '14:00:00', 2, 160.00, 'Buster is food motivated - great for training', 13, 14, 6),
+(14, '2025-08-11', '16:00:00', '19:00:00', 1, 96.00, 'Shadow is independent but likes some attention', 14, 17, 13),
+(15, '2025-08-12', '11:00:00', '16:00:00', 2, 135.00, 'Rex needs lots of exercise and playtime', 15, 19, 8),
+(16, '2025-08-12', '08:00:00', '11:00:00', 3, 63.00, 'Talk to Coco and play some music for her', 16, 22, 15),
+(17, '2025-08-13', '10:00:00', '12:00:00', 2, 44.00, 'Feed Nemo and check water temperature', 17, 1, 10),
+(18, '2025-08-13', '14:00:00', '17:00:00', 1, 81.00, 'Daisy needs her arthritis medication', 18, 4, 20),
+(19, '2025-08-14', '09:00:00', '13:00:00', 2, 124.00, 'Tiger loves to play - bring laser pointer', 19, 7, 11),
+(20, '2025-08-14', '15:00:00', '18:00:00', 5, 75.00, 'Ace is a puppy - needs constant watching', 20, 9, 2),
+(21, '2025-08-15', '12:00:00', '15:00:00', 2, 78.00, 'Give Snowball fresh vegetables and hay', 21, 14, 13),
+(22, '2025-08-15', '17:00:00', '19:00:00', 1, 48.00, 'Clean Peanuts cage - he is most active evening', 22, 17, 15),
+(23, '2025-08-16', '08:00:00', '12:00:00', 2, 116.00, 'Bella needs mental stimulation - puzzle toys', 23, 19, 16),
+(24, '2025-08-16', '14:00:00', '17:00:00', 4, 87.00, 'Smokey prefers quiet - no loud noises', 24, 22, 20),
+(25, '2025-08-17', '10:00:00', '14:00:00', 1, 84.00, 'Second visit for Buddy - same medication schedule', 1, 1, 18),
+(26, '2025-08-17', '16:00:00', '19:00:00', 2, 90.00, 'Charlie has been good - reward with treats', 3, 7, 21),
+(27, '2025-08-18', '09:00:00', '15:00:00', 1, 180.00, 'Long day care for Max - include feeding', 5, 14, 20),
+(28, '2025-08-18', '11:00:00', '13:00:00', 3, 54.00, 'Luna is getting used to you now', 6, 17, 8),
+(29, '2025-08-19', '07:00:00', '11:00:00', 2, 124.00, 'Early morning care for Duke before work', 9, 1, 21),
+(30,'2025-08-19', '15:00:00', '19:00:00', 1, 124.00, 'Extended play session for Rex - he loves fetch', 15, 19, 21);
 
 
--- 5. SITTER PROFILES TABLE (20 INSERT STATEMENTS)
--- Note: Only users with customer_type 'SITTER' or 'BOTH' can have profiles
-INSERT INTO sitter_profiles (id, user_id, hourly_rate, experience_years, bio, is_verified, max_pets_per_booking, available_services) VALUES
-    (1, 2, 25.00, 5, 'Experienced pet sitter with veterinary background', TRUE, 3, 'Walking, Feeding, Overnight Care'),
-    (2, 5, 20.00, 3, 'Dog trainer offering professional pet care', TRUE, 2, 'Walking, Training, Feeding'),
-    (3, 8, 22.50, 4, 'Animal lover with flexible schedule', TRUE, 4, 'Walking, Feeding, Grooming, Playtime'),
-    (4, 11, 18.00, 2, 'College student passionate about animals', FALSE, 2, 'Walking, Feeding, Playtime'),
-    (5, 14, 30.00, 8, 'Certified animal behaviorist', TRUE, 5, 'Behavior Training, Walking, Feeding, Medication'),
-    (6, 17, 26.00, 6, 'Professional pet care provider', TRUE, 3, 'Walking, Feeding, Overnight Care, Grooming'),
-    (7, 3, 24.00, 4, 'Pet owner and sitter with great references', TRUE, 3, 'Walking, Feeding, Playtime'),
-    (8, 6, 21.00, 3, 'Reliable sitter with weekend availability', FALSE, 2, 'Walking, Feeding, Overnight Care'),
-    (9, 9, 27.50, 7, 'Former veterinary assistant', TRUE, 4, 'Medication, Walking, Feeding, Emergency Care'),
-    (10, 12, 19.00, 2, 'Stay-at-home parent loving pets', FALSE, 3, 'Walking, Feeding, Playtime'),
-    (11, 15, 23.00, 5, 'Dog daycare owner offering home services', TRUE, 6, 'Walking, Feeding, Socialization, Training'),
-    (12, 18, 28.00, 9, 'Retired veterinarian providing care', TRUE, 5, 'Medical Care, Walking, Feeding, Grooming');
+-- constraint
+ALTER TABLE bookings
+    DROP CONSTRAINT bookings_sitter_id_fkey;
+
+ALTER TABLE bookings
+    ADD CONSTRAINT bookings_sitter_id_fkey
+        FOREIGN KEY (sitter_id) REFERENCES users(id) ON DELETE CASCADE;
 
 
--- 6. SITTER AVAILABILITY TABLE (20 INSERT STATEMENTS)
--- Note: Only users with customer_type 'SITTER' or 'BOTH' can have availability
-INSERT INTO sitter_availability (id, sitter_id, available_date, start_time, end_time, is_blocked) VALUES
-    (1, 2, '2025-08-05', '09:00', '17:00', FALSE),
-    (2, 5, '2025-08-05', '08:00', '12:00', FALSE),
-    (3, 8, '2025-08-05', '13:00', '19:00', FALSE),
-    (4, 11, '2025-08-05', '10:00', '16:00', FALSE),
-    (5, 14, '2025-08-05', '07:00', '15:00', FALSE),
-    (6, 17, '2025-08-06', '09:00', '18:00', FALSE),
-    (7, 3, '2025-08-06', '08:00', '14:00', FALSE),
-    (8, 6, '2025-08-06', '12:00', '20:00', FALSE),
-    (9, 9, '2025-08-06', '06:00', '12:00', FALSE),
-    (10, 12, '2025-08-06', '14:00', '18:00', FALSE),
-    (11, 15, '2025-08-07', '10:00', '16:00', FALSE),
-    (12, 18, '2025-08-07', '08:00', '17:00', FALSE),
-    (13, 2, '2025-08-07', '11:00', '15:00', TRUE),
-    (14, 5, '2025-08-07', '09:00', '13:00', FALSE),
-    (15, 8, '2025-08-08', '14:00', '20:00', FALSE),
-    (16, 11, '2025-08-08', '08:00', '12:00', FALSE),
-    (17, 14, '2025-08-08', '16:00', '22:00', FALSE),
-    (18, 17, '2025-08-08', '07:00', '11:00', FALSE),
-    (19, 3, '2025-08-09', '13:00', '19:00', FALSE),
-    (20, 6, '2025-08-09', '09:00', '15:00', TRUE);
-
-
--- 7. BOOKINGS TABLE (20 INSERT STATEMENTS)
-INSERT INTO bookings (id, booking_date, start_time, end_time, status, total_cost, special_requests, pet_id, owner_id, sitter_id) VALUES
-    (1, '2025-08-10', '09:00', '12:00', 'CONFIRMED', 75.00, 'Please give medication at 10 AM', 1, 1, 2),
-    (2, '2025-08-11', '14:00', '18:00', 'PENDING', 80.00, 'Extra playtime needed', 3, 4, 5),
-    (3, '2025-08-12', '08:00', '16:00', 'CONFIRMED', 180.00, 'Full day care, includes feeding', 5, 7, 8),
-    (4, '2025-08-13', '10:00', '13:00', 'COMPLETED', 54.00, 'Short walks only', 7, 10, 11),
-    (5, '2025-08-14', '07:00', '19:00', 'CONFIRMED', 360.00, 'Overnight care required', 9, 13, 14),
-    (6, '2025-08-15', '15:00', '20:00', 'PENDING', 130.00, 'Evening walk and feeding', 11, 16, 17),
-    (7, '2025-08-16', '09:00', '14:00', 'CANCELLED', 120.00, 'Owner cancelled due to travel change', 2, 3, 6),
-    (8, '2025-08-17', '11:00', '17:00', 'CONFIRMED', 126.00, 'Grooming included', 4, 6, 9),
-    (9, '2025-08-18', '08:00', '12:00', 'COMPLETED', 110.00, 'Senior dog, gentle care', 6, 9, 12),
-    (10, '2025-08-19', '13:00', '16:00', 'PENDING', 57.00, 'High energy dog, long walk', 8, 12, 15),
-    (11, '2025-08-20', '16:00', '21:00', 'CONFIRMED', 140.00, 'Evening care, dinner included', 10, 15, 18),
-    (12, '2025-08-21', '07:00', '11:00', 'COMPLETED', 100.00, 'Morning routine established', 12, 18, 3),
-    (13, '2025-08-22', '12:00', '18:00', 'CONFIRMED', 147.00, 'Multiple pets, package deal', 13, 1, 2),
-    (14, '2025-08-23', '09:00', '15:00', 'PENDING', 123.00, 'Socialization with other pets', 14, 4, 5),
-    (15, '2025-08-24', '14:00', '20:00', 'CONFIRMED', 132.00, 'Outdoor adventure time', 15, 7, 8),
-    (16, '2025-08-25', '10:00', '14:00', 'COMPLETED', 76.00, 'Indoor playtime focus', 16, 10, 11),
-    (17, '2025-08-26', '08:00', '17:00', 'CONFIRMED', 279.00, 'Full day with training session', 17, 13, 14),
-    (18, '2025-08-27', '15:00', '19:00', 'PENDING', 104.00, 'Special needs attention', 18, 16, 17),
-    (19, '2025-08-28', '11:00', '16:00', 'CANCELLED', 105.00, 'Sitter emergency cancellation', 19, 3, 6),
-    (20, '2025-08-29', '09:00', '13:00', 'CONFIRMED', 86.00, 'Quiet indoor cat sitting', 20, 6, 9);
 
 -- select * from customer_types;
 -- select * from pet_types;
+-- select * from roles;
+-- select * from booking_statuses;
 -- select * from users;
 -- select * from pets;
--- select * from sitter_profiles;
--- select * from sitter_availability;
 -- select * from bookings;
+/*
+SELECT
+    schemaname,
+    sequencename,
+    last_value as current_value
+FROM pg_sequences
+WHERE sequencename LIKE '%users%';
 
+-- Check max ID in users table
+SELECT MAX(id) as max_user_id FROM users;
+
+-- Reset sequence for users table
+-- Replace 'users_id_seq' with your actual sequence name if different
+SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users));
+
+-- Verify the fix
+SELECT
+    currval('users_id_seq') as sequence_value,
+    (SELECT MAX(id) FROM users) as max_table_id;
+
+-- Alternative: Reset all sequences in database
+-- (Use with caution in production)
+SELECT
+    'SELECT setval(''' || schemaname || '.' || sequencename ||
+    ''', (SELECT COALESCE(MAX(' || split_part(sequencename, '_', 2) ||
+    '), 1) FROM ' || schemaname || '.' ||
+    replace(sequencename, '_id_seq', '') || '));' as reset_command
+FROM pg_sequences
+WHERE sequencename LIKE '%_id_seq';
+
+
+SELECT setval('pets_id_seq', (SELECT MAX(id) FROM pets));
+*/
 
