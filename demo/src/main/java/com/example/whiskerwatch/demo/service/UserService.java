@@ -1,20 +1,21 @@
 package com.example.whiskerwatch.demo.service;
 
-import com.example.whiskerwatch.demo.model.User;
-import com.example.whiskerwatch.demo.model.Role;
-import com.example.whiskerwatch.demo.model.CustomerType;
-import com.example.whiskerwatch.demo.repository.UserJPARepository;
-import com.example.whiskerwatch.demo.repository.RoleJPARepository;
-import com.example.whiskerwatch.demo.repository.BookingJPARepository;
-import com.example.whiskerwatch.demo.repository.CustomerTypeJPARepository;
+import java.util.List;
+import java.util.Optional;
 
-import lombok.NonNull;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.example.whiskerwatch.demo.model.CustomerType;
+import com.example.whiskerwatch.demo.model.Role;
+import com.example.whiskerwatch.demo.model.User;
+import com.example.whiskerwatch.demo.repository.BookingJPARepository;
+import com.example.whiskerwatch.demo.repository.CustomerTypeJPARepository;
+import com.example.whiskerwatch.demo.repository.RoleJPARepository;
+import com.example.whiskerwatch.demo.repository.UserJPARepository;
+
+import lombok.NonNull;
 
 @Service
 public class UserService {
@@ -50,51 +51,49 @@ public class UserService {
         return userRepository.findById(userId);
     }
 
-    public void createUser(@NonNull String userName, @NonNull String email, @NonNull String password,
-                           @NonNull Long roleId, Long customerTypeId, @NonNull String firstName,
-                           @NonNull String lastName, @NonNull String phoneNumber, @NonNull String address) {
+    public User createUser(String userName, String email, String password,
+                       Long roleId, Long customerTypeId,
+                       String firstName, String lastName,
+                       String phoneNumber, String address) {
 
-        // Check for existing constraints BEFORE attempting to save
+        // Check for duplicates
         if (userRepository.existsByUserName(userName)) {
             throw new IllegalArgumentException("Username already exists: " + userName);
         }
-
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists: " + email);
         }
-
         if (userRepository.existsByPhoneNumber(phoneNumber)) {
             throw new IllegalArgumentException("Phone number already exists: " + phoneNumber);
         }
 
-        Role role = roleRepository.findById(roleId)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found"));
+        // Handle role
+        Role role;
+        if (roleId == null) {
+            role = roleRepository.findByRoleName("CUSTOMER")
+                    .orElseThrow(() -> new IllegalArgumentException("Default role not found"));
+        } else {
+            role = roleRepository.findById(roleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Role not found"));
+        }
 
+        // Handle optional customer type
         CustomerType customerType = null;
         if (customerTypeId != null) {
             customerType = customerTypeRepository.findById(customerTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("Customer type not found"));
         }
 
+        // Create user entity
         User user = new User(userName, email, password, role, firstName, lastName, phoneNumber, address);
         user.setCustomerType(customerType);
+        user.setIsActive(true);
 
-        try {
-            userRepository.save(user);
-        } catch (DataIntegrityViolationException e) {
-            // Handle any remaining constraint violations
-            if (e.getMessage().contains("users_pkey")) {
-                throw new IllegalStateException("Primary key constraint violation. Database sequence may need reset.");
-            } else if (e.getMessage().contains("user_name")) {
-                throw new IllegalArgumentException("Username already exists");
-            } else if (e.getMessage().contains("email")) {
-                throw new IllegalArgumentException("Email already exists");
-            } else if (e.getMessage().contains("phone_number")) {
-                throw new IllegalArgumentException("Phone number already exists");
-            }
-            throw e; // Re-throw if not handled
-        }
+        // Save and return
+        return userRepository.save(user);
     }
+
+
 
     public void updateUser(@NonNull Long userId, @NonNull String userName, @NonNull String email,
                            String password, @NonNull Long roleId, Long customerTypeId,
