@@ -2,6 +2,7 @@ package com.example.whiskerwatch.demo.controller;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -99,5 +100,23 @@ public class UserController {
     public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
+        String email = loginRequest.get("email");
+        String password = loginRequest.get("password");
+
+        var userOpt = userService.getUserByEmail(email);
+        if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                .body(Map.of("message", "Invalid credentials"));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Login successful",
+            "userId", userOpt.get().getId(),
+            "role", userOpt.get().getRole().getRoleName()
+        ));
     }
 }

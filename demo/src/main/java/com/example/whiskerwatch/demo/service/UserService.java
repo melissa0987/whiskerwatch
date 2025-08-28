@@ -34,6 +34,11 @@ public class UserService {
         this.bookingRepository = bookingRepository;
     }
 
+    public Optional<User> getUserByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
+
+
     public List<User> getUsers(String email, String customerType, Boolean isActive) {
         if (email != null && !email.isBlank()) {
             return userRepository.findByEmailContaining(email);
@@ -50,6 +55,7 @@ public class UserService {
     public Optional<User> getUser(Long userId) {
         return userRepository.findById(userId);
     }
+    
 
     public User createUser(String userName, String email, String password,
                        Long roleId, Long customerTypeId,
