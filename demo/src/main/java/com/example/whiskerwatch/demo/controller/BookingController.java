@@ -19,6 +19,7 @@ import java.util.Optional;
 @Validated
 @RestController
 @RequestMapping("/api/bookings")
+
 public class BookingController {
     private final BookingService bookingService;
 

@@ -17,6 +17,7 @@ import java.util.List;
 @Validated
 @RestController
 @RequestMapping("/api/pets")
+@CrossOrigin(origins = "http://localhost:5173")
 public class PetController {
     private final PetService petService;
 
