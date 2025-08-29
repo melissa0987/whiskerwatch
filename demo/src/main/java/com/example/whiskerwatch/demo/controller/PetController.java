@@ -1,18 +1,28 @@
 package com.example.whiskerwatch.demo.controller;
 
 
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.whiskerwatch.demo.controller.request.CreateGroup;
 import com.example.whiskerwatch.demo.controller.request.PetRequest;
 import com.example.whiskerwatch.demo.controller.request.UpdateGroup;
 import com.example.whiskerwatch.demo.controller.response.PetResponse;
 import com.example.whiskerwatch.demo.service.PetService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Validated
 @RestController
@@ -20,6 +30,7 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:5173")
 public class PetController {
     private final PetService petService;
+    
 
     public PetController(PetService petService) {
         this.petService = petService;
