@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class UserService {
     private final RoleJPARepository roleRepository;
     private final CustomerTypeJPARepository customerTypeRepository;
     private final BookingJPARepository bookingRepository;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserService(UserJPARepository userRepository,
                        RoleJPARepository roleRepository,
@@ -36,6 +38,17 @@ public class UserService {
 
     public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public void updatePassword(Long userId, String hashedPassword) {
+        Optional<User> userOpt = getUser(userId);
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("User not found");
+        }
+        
+        User user = userOpt.get();
+        user.setPassword(hashedPassword);
+        userRepository.save(user);
     }
 
 
@@ -57,10 +70,11 @@ public class UserService {
     }
     
 
-    public User createUser(String userName, String email, String password,
-                       Long roleId, Long customerTypeId,
-                       String firstName, String lastName,
-                       String phoneNumber, String address) {
+    public User createUser(String userName, String email, String password, 
+                      Long roleId, Long customerTypeId, String firstName, 
+                      String lastName, String phoneNumber, String address) {
+
+        String hashedPassword = passwordEncoder.encode(password);
 
         // Check for duplicates
         if (userRepository.existsByUserName(userName)) {
@@ -91,7 +105,8 @@ public class UserService {
         }
 
         // Create user entity
-        User user = new User(userName, email, password, role, firstName, lastName, phoneNumber, address);
+        User user = new User(userName, email, hashedPassword, role, firstName, lastName, phoneNumber, address);
+
         user.setCustomerType(customerType);
         user.setIsActive(true);
 
@@ -140,7 +155,7 @@ public class UserService {
         existingUser.setUserName(userName);
         existingUser.setEmail(email);
         if (password != null && !password.isBlank()) {
-            existingUser.setPassword(password);
+            existingUser.setPassword(passwordEncoder.encode(password));
         }
         existingUser.setRole(role);
         existingUser.setCustomerType(customerType);
@@ -176,4 +191,5 @@ public class UserService {
     public List<User> getActiveUsers() {
         return userRepository.findByIsActive(true);
     }
+    
 }

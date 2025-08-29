@@ -16,6 +16,9 @@ import com.example.whiskerwatch.demo.controller.response.UserResponse;
 import com.example.whiskerwatch.demo.model.User;
 import com.example.whiskerwatch.demo.service.UserService;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import com.example.whiskerwatch.demo.controller.request.PasswordChangeRequest;
+
 @Validated
 @RestController
 @RequestMapping("/api/users")
@@ -23,12 +26,46 @@ import com.example.whiskerwatch.demo.service.UserService;
 public class UserController {
 
     private final UserService userService;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
-    // ✅ Get all users
+    @PutMapping("/{userId}/password")
+    public ResponseEntity<?> changePassword(
+            @PathVariable Long userId,
+            @RequestBody @Validated PasswordChangeRequest passwordRequest) {
+        
+        try {
+            Optional<User> userOpt = userService.getUser(userId);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            User user = userOpt.get();
+            
+            // Verify current password
+            if (!passwordEncoder.matches(passwordRequest.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("success", false, "message", "Current password is incorrect"));
+            }
+            
+            // Hash new password
+            String hashedNewPassword = passwordEncoder.encode(passwordRequest.getNewPassword());
+            
+            // Update password in database
+            userService.updatePassword(userId, hashedNewPassword);
+            
+            return ResponseEntity.ok(Map.of("success", true, "message", "Password updated successfully"));
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "Failed to update password"));
+        }
+    }
+
+    //Get all users
     @GetMapping
     public ResponseEntity<List<UserResponse>> getUsers(
             @RequestParam(name = "email", required = false) String email,
@@ -42,7 +79,7 @@ public class UserController {
         );
     }
 
-    // ✅ Get user by ID
+    // âœ… Get user by ID
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponse> getUser(@PathVariable Long userId) {
         return userService.getUser(userId)
@@ -51,14 +88,14 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // ✅ Register (Signup) user
+    // âœ… Register (Signup) user
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody @Validated(CreateGroup.class) UserRequest userRequest) {
         User savedUser = userService.createUser(
                 userRequest.getUserName(),
                 userRequest.getEmail(),
                 userRequest.getPassword(),
-                userRequest.getRoleId(),           // null is OK → defaults to CUSTOMER
+                userRequest.getRoleId(),           // null is OK â†’ defaults to CUSTOMER
                 userRequest.getCustomerTypeId(),
                 userRequest.getFirstName(),
                 userRequest.getLastName(),
@@ -74,7 +111,7 @@ public class UserController {
                 ));
     }
 
-    // ✅ Update user
+    // âœ… Update user
     @PutMapping("/{userId}")
     public ResponseEntity<?> updateUser(
             @PathVariable Long userId,
@@ -95,7 +132,7 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "User updated successfully"));
     }
 
-    // ✅ Delete user
+    // âœ… Delete user
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
@@ -108,7 +145,7 @@ public class UserController {
         String password = loginRequest.get("password");
 
         var userOpt = userService.getUserByEmail(email);
-        if (userOpt.isEmpty() || !userOpt.get().getPassword().equals(password)) {
+        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                                 .body(Map.of("message", "Invalid credentials"));
         }
