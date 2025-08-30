@@ -71,7 +71,7 @@ public class BookingService {
     public void createBooking(@NonNull LocalDate bookingDate, @NonNull LocalTime startTime,
                               @NonNull LocalTime endTime, @NonNull Long statusId, BigDecimal totalCost,
                               String specialRequests, @NonNull Long petId, @NonNull Long ownerId,
-                              @NonNull Long sitterId) {
+                              Long sitterId) {
 
         Pet pet = petRepository.findById(petId)
                 .orElseThrow(() -> new IllegalArgumentException("Pet not found"));
@@ -79,17 +79,27 @@ public class BookingService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Owner not found"));
 
-        User sitter = userRepository.findById(sitterId)
-                .orElseThrow(() -> new IllegalArgumentException("Sitter not found"));
+        User sitter = null;
+        if (sitterId != null) {
+            sitter = userRepository.findById(sitterId)
+                    .orElseThrow(() -> new IllegalArgumentException("Sitter not found"));
+        }
 
         BookingStatus status = bookingStatusRepository.findById(statusId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking status not found"));
 
-        Booking booking = new Booking(bookingDate, startTime, endTime, status, pet, owner, sitter);
-        booking.setTotalCost(totalCost);
-        booking.setSpecialRequests(specialRequests);
+        Booking booking = new Booking();
+            booking.setBookingDate(bookingDate);
+            booking.setStartTime(startTime);
+            booking.setEndTime(endTime);
+            booking.setStatus(status);
+            booking.setPet(pet);
+            booking.setOwner(owner);
+            booking.setSitter(sitter);
+            booking.setTotalCost(totalCost);
+            booking.setSpecialRequests(specialRequests);
 
-        bookingRepository.save(booking);
+            bookingRepository.save(booking);
     }
 
     public void updateBooking(@NonNull Long bookingId, @NonNull LocalDate bookingDate,

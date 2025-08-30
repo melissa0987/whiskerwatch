@@ -55,7 +55,7 @@ public class Booking {
     private User owner;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sitter_id", nullable = false)
+    @JoinColumn(name = "sitter_id", nullable = true) // allow null
     private User sitter;
 
     @PrePersist
@@ -70,13 +70,13 @@ public class Booking {
     }
 
     public Booking(LocalDate bookingDate, LocalTime startTime, LocalTime endTime,
-                   BookingStatus status, Pet pet, User owner, User sitter) {
+                   BookingStatus status, Pet pet, User owner) {
         this.bookingDate = bookingDate;
         this.startTime = startTime;
         this.endTime = endTime;
         this.status = status;
         this.pet = pet;
         this.owner = owner;
-        this.sitter = sitter;
+        this.sitter = null; 
     }
 }

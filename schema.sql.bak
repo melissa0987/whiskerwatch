@@ -85,7 +85,7 @@ CREATE TABLE bookings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     pet_id INTEGER NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
     owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    sitter_id INTEGER REFERENCES users(id) ON DELETE RESTRICT
+    sitter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT
 );
 
 
@@ -264,7 +264,6 @@ WHERE sequencename LIKE '%_id_seq';
 
 
 SELECT setval('pets_id_seq', (SELECT MAX(id) FROM pets));
-SELECT setval('bookings_id_seq', (SELECT MAX(id) FROM bookings));
 
  
 
