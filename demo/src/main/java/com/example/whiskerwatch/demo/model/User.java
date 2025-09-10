@@ -19,8 +19,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_name", unique = true, nullable = false, length = 50)
-    private String userName;
+    @Column(name = "username", unique = true, nullable = false, length = 50)
+    private String username;
 
     @Column(unique = true, nullable = false, length = 100)
     private String email;
@@ -78,9 +78,9 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    public User(String userName, String email, String password, Role role,
+    public User(String username, String email, String password, Role role,
                 String firstName, String lastName, String phoneNumber, String address) {
-        this.userName = userName;
+        this.username = username;
         this.email = email;
         this.password = password;
         this.role = role;

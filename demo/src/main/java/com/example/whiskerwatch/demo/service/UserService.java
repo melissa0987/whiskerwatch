@@ -3,7 +3,7 @@ package com.example.whiskerwatch.demo.service;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.dao.DataIntegrityViolationException;
+ 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,7 +77,7 @@ public class UserService {
         String hashedPassword = passwordEncoder.encode(password);
 
         // Check for duplicates
-        if (userRepository.existsByUserName(userName)) {
+        if (userRepository.existsByUsername(userName)) {
             throw new IllegalArgumentException("Username already exists: " + userName);
         }
         if (userRepository.existsByEmail(email)) {
@@ -125,7 +125,7 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Check for conflicts with other users (exclude current user)
-        userRepository.findByUserName(userName)
+        userRepository.findByUsername(userName)
                 .filter(user -> !user.getId().equals(userId))
                 .ifPresent(user -> {
                     throw new IllegalArgumentException("Username already exists: " + userName);
@@ -152,7 +152,7 @@ public class UserService {
                     .orElseThrow(() -> new IllegalArgumentException("Customer type not found"));
         }
 
-        existingUser.setUserName(userName);
+        existingUser.setUsername(userName);
         existingUser.setEmail(email);
         if (password != null && !password.isBlank()) {
             existingUser.setPassword(passwordEncoder.encode(password));

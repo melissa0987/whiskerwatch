@@ -11,8 +11,8 @@ import lombok.Data;
 public class UserRequest {
 
     @NotBlank(groups = {CreateGroup.class, UpdateGroup.class})
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
-    private String userName;
+    @Size(min = 3, max = 50, message = "username must be between 3 and 50 characters")
+    private String username;
 
     @NotBlank(groups = {CreateGroup.class, UpdateGroup.class})
     @Email(message = "Email should be valid")

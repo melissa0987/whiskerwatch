@@ -1,18 +1,19 @@
 package com.example.whiskerwatch.demo.repository;
 
 
-import com.example.whiskerwatch.demo.model.User;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
+import com.example.whiskerwatch.demo.model.User;
 
 public interface UserJPARepository extends JpaRepository<User, Long> {
     // Find by username
-    Optional<User> findByUserName(String userName);
+    Optional<User> findByUsername(String username);
 
     // Find by email
     Optional<User> findByEmail(String email);
@@ -43,7 +44,7 @@ public interface UserJPARepository extends JpaRepository<User, Long> {
     void deleteByEmail(@Param("email") String email);
 
     // Check if username exists
-    boolean existsByUserName(String userName);
+    boolean existsByUsername(String userName);
 
     // Check if email exists
     boolean existsByEmail(String email);

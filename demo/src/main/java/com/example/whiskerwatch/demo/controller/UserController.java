@@ -92,7 +92,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody @Validated(CreateGroup.class) UserRequest userRequest) {
         User savedUser = userService.createUser(
-                userRequest.getUserName(),
+                userRequest.getUsername(),
                 userRequest.getEmail(),
                 userRequest.getPassword(),
                 userRequest.getRoleId(),           // null is OK â†’ defaults to CUSTOMER
@@ -118,7 +118,7 @@ public class UserController {
             @RequestBody @Validated(UpdateGroup.class) UserRequest userRequest) {
         userService.updateUser(
                 userId,
-                userRequest.getUserName(),
+                userRequest.getUsername(),
                 userRequest.getEmail(),
                 userRequest.getPassword(),
                 userRequest.getRoleId(),

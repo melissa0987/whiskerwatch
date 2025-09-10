@@ -39,7 +39,7 @@ CREATE TABLE booking_statuses (
 -- 5. Users Table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    user_name VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
@@ -96,8 +96,7 @@ CREATE TABLE bookings (
 -- 1. Insert Customer Types
 INSERT INTO customer_types (id, type_name) VALUES
 (1, 'OWNER'),
-(2, 'SITTER'),
-(3, 'BOTH');
+(2, 'SITTER');
 
 -- 2. Insert Pet Types
 INSERT INTO pet_types (id, type_name) VALUES
@@ -129,30 +128,31 @@ INSERT INTO booking_statuses (id, status_name) VALUES
 -- 5. Insert Users 
 -- customer: password
 -- admin: adminpassword
-INSERT INTO users (id, user_name, email, password, role_id, customer_type_id, first_name, last_name, phone_number, address) VALUES
+INSERT INTO users (id, username, email, password, role_id, customer_type_id, first_name, last_name, phone_number, address) VALUES
 (1, 'sarah_jones', 'sarah.jones@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Sarah', 'Jones', '555-0101', '123 Oak Street, Toronto, ON M4B 1Y2'),
 (2, 'mike_smith', 'mike.smith@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Mike', 'Smith', '555-0102', '456 Maple Ave, Toronto, ON M5V 3A8'),
-(3, 'emma_wilson', 'emma.wilson@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 3, 'Emma', 'Wilson', '555-0103', '789 Pine Road, Mississauga, ON L5B 4K9'),
+(3, 'emma_wilson', 'emma.wilson@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Emma', 'Wilson', '555-0103', '789 Pine Road, Mississauga, ON L5B 4K9'),
 (4, 'david_brown', 'david.brown@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'David', 'Brown', '555-0104', '321 Elm Street, Toronto, ON M6H 2X5'),
 (5, 'lisa_davis', 'lisa.davis@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Lisa', 'Davis', '555-0105', '654 Cedar Lane, Brampton, ON L6T 5R3'),
-(6, 'james_miller', 'james.miller@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 3, 'James', 'Miller', '555-0106', '987 Birch Circle, Toronto, ON M4C 5E7'),
+(6, 'james_miller', 'james.miller@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'James', 'Miller', '555-0106', '987 Birch Circle, Toronto, ON M4C 5E7'),
 (7, 'anna_garcia', 'anna.garcia@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Anna', 'Garcia', '555-0107', '147 Spruce Way, Vaughan, ON L4J 8M2'),
 (8, 'robert_martinez', 'robert.martinez@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Robert', 'Martinez', '555-0108', '258 Willow Drive, Richmond Hill, ON L4B 3N9'),
 (9, 'jessica_anderson', 'jessica.anderson@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Jessica', 'Anderson', '555-0109', '369 Ash Boulevard, Markham, ON L3P 7K5'),
 (10, 'kevin_taylor', 'kevin.taylor@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Kevin', 'Taylor', '555-0110', '741 Poplar Street, Toronto, ON M6P 1R8'),
-(11, 'michelle_thomas', 'michelle.thomas@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 3, 'Michelle', 'Thomas', '555-0111', '852 Cherry Lane, Etobicoke, ON M9C 4T6'),
+(11, 'michelle_thomas', 'michelle.thomas@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Michelle', 'Thomas', '555-0111', '852 Cherry Lane, Etobicoke, ON M9C 4T6'),
 (12, 'christopher_white', 'christopher.white@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Christopher', 'White', '555-0112', '963 Walnut Avenue, North York, ON M2N 6H3'),
 (13, 'amanda_harris', 'amanda.harris@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Amanda', 'Harris', '555-0113', '159 Hickory Road, Scarborough, ON M1B 5G7'),
 (14, 'daniel_clark', 'daniel.clark@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Daniel', 'Clark', '555-0114', '357 Chestnut Drive, Toronto, ON M5R 2L4'),
 (15, 'stephanie_lewis', 'stephanie.lewis@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Stephanie', 'Lewis', '555-0115', '486 Beech Street, Mississauga, ON L5H 3J8'),
-(16, 'matthew_walker', 'matthew.walker@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 3, 'Matthew', 'Walker', '555-0116', '672 Sycamore Place, Burlington, ON L7M 4P2'),
+(16, 'matthew_walker', 'matthew.walker@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Matthew', 'Walker', '555-0116', '672 Sycamore Place, Burlington, ON L7M 4P2'),
 (17, 'nicole_hall', 'nicole.hall@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Nicole', 'Hall', '555-0117', '793 Magnolia Court, Oakville, ON L6H 6W1'),
 (18, 'ryan_allen', 'ryan.allen@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Ryan', 'Allen', '555-0118', '814 Dogwood Trail, Milton, ON L9T 7X5'),
 (19, 'lauren_young', 'lauren.young@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Lauren', 'Young', '555-0119', '925 Redwood Heights, Georgetown, ON L7G 4R9'),
 (20, 'brandon_king', 'brandon.king@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Brandon', 'King', '555-0120', '136 Cypress Gardens, Ajax, ON L1S 3M7'),
-(21, 'samantha_wright', 'samantha.wright@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 3, 'Samantha', 'Wright', '555-0121', '247 Fir Ridge, Pickering, ON L1V 2K4'),
+(21, 'samantha_wright', 'samantha.wright@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 2, 'Samantha', 'Wright', '555-0121', '247 Fir Ridge, Pickering, ON L1V 2K4'),
 (22, 'tyler_lopez', 'tyler.lopez@email.com', '$2a$06$L2s.dzicmhNs4unAFZP1ZOKqTxAqOsw.tkKBLDfq8TDDr8SjQb9ta', 1, 1, 'Tyler', 'Lopez', '555-0122', '358 Hemlock Valley, Whitby, ON L1N 8P6'),
-(23, 'admin_user', 'admin@petsitting.com', '$2a$06$.Uagk0RgXqvzoFwfE2c0BOIwC8dKtLdJQDR4m67VGU/0G1L7llI/q', 2, NULL, 'Admin', 'User', '555-0000', '1 Admin Plaza, Toronto, ON M5H 2N2');
+(23, 'admin_user1', 'admin1@petsitting.com', '$2a$06$.Uagk0RgXqvzoFwfE2c0BOIwC8dKtLdJQDR4m67VGU/0G1L7llI/q', 2, NULL, 'Admin1', 'Admin1', '555-0001', '1 Admin Plaza, Toronto, ON M5H 2N2'),
+(24, 'admin_user2', 'admin2@petsitting.com', '$2a$06$.Uagk0RgXqvzoFwfE2c0BOIwC8dKtLdJQDR4m67VGU/0G1L7llI/q', 2, NULL, 'Admin2', 'Admin2', '555-0002', '1 Admin Plaza, Toronto, ON M5H 2N2');
 
 -- 6. Insert Pets (20+ records)
 INSERT INTO pets (id, name, age, breed, weight, special_instructions, owner_id, type_id) VALUES

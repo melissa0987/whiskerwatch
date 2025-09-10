@@ -13,7 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class UserResponse {
     private Long userId;
-    private String userName;
+    private String username;
     private String email;
     private String roleName;
     private String customerTypeName;
@@ -31,7 +31,7 @@ public class UserResponse {
     public static UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(),
-                user.getUserName(),
+                user.getUsername(),
                 user.getEmail(),
                 user.getRole() != null ? user.getRole().getRoleName() : null,
                 user.getCustomerType() != null ? user.getCustomerType().getTypeName() : null,
