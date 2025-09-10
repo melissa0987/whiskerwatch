@@ -103,4 +103,11 @@ public class PetService {
     public List<Pet> getPetsByType(String typeName) {
         return petRepository.findByTypeTypeName(typeName);
     }
+
+    // Security helper method
+    public boolean isPetOwner(Long petId, Long userId) {
+        return petRepository.findById(petId)
+                .map(pet -> pet.getOwner().getId().equals(userId))
+                .orElse(false);
+    }
 }

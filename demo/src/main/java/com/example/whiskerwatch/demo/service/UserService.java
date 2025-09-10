@@ -57,7 +57,7 @@ public class UserService {
             return userRepository.findByEmailContaining(email);
         }
         if (customerType != null && !customerType.isBlank()) {
-            return userRepository.findByCustomerTypeTypeName(customerType);
+            return userRepository.findByCustomerType_TypeName(customerType);
         }
         if (isActive != null) {
             return userRepository.findByIsActive(isActive);
@@ -70,15 +70,15 @@ public class UserService {
     }
     
 
-    public User createUser(String userName, String email, String password, 
+    public User createUser(String username, String email, String password, 
                       Long roleId, Long customerTypeId, String firstName, 
                       String lastName, String phoneNumber, String address) {
 
         String hashedPassword = passwordEncoder.encode(password);
 
         // Check for duplicates
-        if (userRepository.existsByUsername(userName)) {
-            throw new IllegalArgumentException("Username already exists: " + userName);
+        if (userRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("Username already exists: " + username);
         }
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already exists: " + email);
@@ -105,7 +105,7 @@ public class UserService {
         }
 
         // Create user entity
-        User user = new User(userName, email, hashedPassword, role, firstName, lastName, phoneNumber, address);
+        User user = new User(username, email, hashedPassword, role, firstName, lastName, phoneNumber, address);
 
         user.setCustomerType(customerType);
         user.setIsActive(true);
@@ -116,7 +116,7 @@ public class UserService {
 
 
 
-    public void updateUser(@NonNull Long userId, @NonNull String userName, @NonNull String email,
+    public void updateUser(@NonNull Long userId, @NonNull String username, @NonNull String email,
                            String password, @NonNull Long roleId, Long customerTypeId,
                            @NonNull String firstName, @NonNull String lastName,
                            @NonNull String phoneNumber, @NonNull String address, Boolean isActive) {
@@ -125,10 +125,10 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Check for conflicts with other users (exclude current user)
-        userRepository.findByUsername(userName)
+        userRepository.findByUsername(username)
                 .filter(user -> !user.getId().equals(userId))
                 .ifPresent(user -> {
-                    throw new IllegalArgumentException("Username already exists: " + userName);
+                    throw new IllegalArgumentException("Username already exists: " + username);
                 });
 
         userRepository.findByEmail(email)
@@ -152,7 +152,7 @@ public class UserService {
                     .orElseThrow(() -> new IllegalArgumentException("Customer type not found"));
         }
 
-        existingUser.setUsername(userName);
+        existingUser.setUsername(username);
         existingUser.setEmail(email);
         if (password != null && !password.isBlank()) {
             existingUser.setPassword(passwordEncoder.encode(password));

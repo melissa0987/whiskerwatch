@@ -25,8 +25,7 @@ public interface UserJPARepository extends JpaRepository<User, Long> {
     List<User> findByRoleRoleName(String roleName);
 
     // Find by customer type name
-    List<User> findByCustomerTypeTypeName(String customerTypeName);
-
+    List<User> findByCustomerType_TypeName(String typeName);
     // Find by active status
     List<User> findByIsActive(Boolean isActive);
 

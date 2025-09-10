@@ -14,36 +14,36 @@ DROP TABLE IF EXISTS bookings CASCADE;
 -- =============================================
 -- 1. Customer Types Table
 CREATE TABLE customer_types (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     type_name VARCHAR(20) UNIQUE NOT NULL -- 'OWNER', 'SITTER', 'BOTH'
 );
 
 -- 2. Pet Types Table
 CREATE TABLE pet_types (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     type_name VARCHAR(50) UNIQUE NOT NULL
 );
 
 -- 3. Roles Table
 CREATE TABLE roles (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     role_name VARCHAR(20) UNIQUE NOT NULL -- e.g. 'CUSTOMER', 'ADMIN'
 );
 
 -- 4. Booking Statuses Table
 CREATE TABLE booking_statuses (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     status_name VARCHAR(20) UNIQUE NOT NULL -- 'PENDING', 'CONFIRMED', etc.
 );
 
 -- 5. Users Table
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role_id INTEGER NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
-    customer_type_id INTEGER REFERENCES customer_types(id) ON DELETE RESTRICT,
+    role_id BIGINT NOT NULL REFERENCES roles(id) ON DELETE RESTRICT,
+    customer_type_id BIGINT REFERENCES customer_types(id) ON DELETE RESTRICT,
     first_name VARCHAR(255) NOT NULL,
     last_name VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) UNIQUE NOT NULL,
@@ -60,7 +60,7 @@ CREATE TABLE users (
 
 -- 6. Pets Table
 CREATE TABLE pets (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     age INTEGER CHECK (age >= 0),
     breed VARCHAR(100),
@@ -68,26 +68,25 @@ CREATE TABLE pets (
     special_instructions TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type_id INTEGER NOT NULL REFERENCES pet_types(id) ON DELETE RESTRICT
+    owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type_id BIGINT NOT NULL REFERENCES pet_types(id) ON DELETE RESTRICT
 );
 
 -- 7. Bookings Table
 CREATE TABLE bookings (
-    id SERIAL PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     booking_date DATE NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
-    status_id INTEGER NOT NULL REFERENCES booking_statuses(id),
+    status_id BIGINT NOT NULL REFERENCES booking_statuses(id),
     total_cost DECIMAL(10, 2),
     special_requests TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    pet_id INTEGER NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
-    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    sitter_id INTEGER REFERENCES users(id) ON DELETE RESTRICT
+    pet_id BIGINT NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sitter_id BIGINT REFERENCES users(id) ON DELETE RESTRICT
 );
-
 
 -- =============================================
 --  INSERT STATEMENTS FOR PET SITTING DATABASE
@@ -214,71 +213,22 @@ INSERT INTO bookings (id, booking_date, start_time, end_time, status_id, total_c
 (29, '2025-08-19', '07:00:00', '11:00:00', 2, 124.00, 'Early morning care for Duke before work', 9, 1, 21),
 (30,'2025-08-19', '15:00:00', '19:00:00', 1, 124.00, 'Extended play session for Rex - he loves fetch', 15, 19, 21);
 
+-- Reset sequences to match the inserted data
+SELECT setval('customer_types_id_seq', (SELECT MAX(id) FROM customer_types));
+SELECT setval('pet_types_id_seq', (SELECT MAX(id) FROM pet_types));
+SELECT setval('roles_id_seq', (SELECT MAX(id) FROM roles));
+SELECT setval('booking_statuses_id_seq', (SELECT MAX(id) FROM booking_statuses));
+SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
+SELECT setval('pets_id_seq', (SELECT MAX(id) FROM pets));
+SELECT setval('bookings_id_seq', (SELECT MAX(id) FROM bookings));
 
--- constraint
+-- Update constraint
 ALTER TABLE bookings
-    DROP CONSTRAINT bookings_sitter_id_fkey;
+    DROP CONSTRAINT IF EXISTS bookings_sitter_id_fkey;
 
 ALTER TABLE bookings
     ADD CONSTRAINT bookings_sitter_id_fkey
         FOREIGN KEY (sitter_id) REFERENCES users(id) ON DELETE CASCADE;
 
-
-
--- select * from customer_types;
--- select * from pet_types;
--- select * from roles;
--- select * from booking_statuses;
--- select * from users;
--- select * from pets;
--- select * from bookings;
-/*
-SELECT
-    schemaname,
-    sequencename,
-    last_value as current_value
-FROM pg_sequences
-WHERE sequencename LIKE '%users%';
-
--- Check max ID in users table
-SELECT MAX(id) as max_user_id FROM users;
-
--- Reset sequence for users table
--- Replace 'users_id_seq' with your actual sequence name if different
-SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users));
-
--- Verify the fix
-SELECT
-    currval('users_id_seq') as sequence_value,
-    (SELECT MAX(id) FROM users) as max_table_id;
-
--- Alternative: Reset all sequences in database
--- (Use with caution in production)
-SELECT
-    'SELECT setval(''' || schemaname || '.' || sequencename ||
-    ''', (SELECT COALESCE(MAX(' || split_part(sequencename, '_', 2) ||
-    '), 1) FROM ' || schemaname || '.' ||
-    replace(sequencename, '_id_seq', '') || '));' as reset_command
-FROM pg_sequences
-WHERE sequencename LIKE '%_id_seq';
-
-
-SELECT setval('pets_id_seq', (SELECT MAX(id) FROM pets));
-SELECT setval('bookings_id_seq', (SELECT MAX(id) FROM bookings));
-
- 
-
-
-*/
-
-/*
-UPDATE users
-SET password = crypt('adminpassword', gen_salt('bf'))
-WHERE role_id = 2;
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-SELECT user_name, password
-FROM users
-WHERE password = crypt('adminpassword', password);
-
-*/
+--select
+select * from users;

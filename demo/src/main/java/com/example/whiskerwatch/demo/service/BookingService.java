@@ -22,6 +22,7 @@ public class BookingService {
     private final PetJPARepository petRepository;
     private final UserJPARepository userRepository;
     private final BookingStatusJPARepository bookingStatusRepository;
+    
 
     public BookingService(BookingJPARepository bookingRepository,
                           PetJPARepository petRepository,
@@ -44,7 +45,9 @@ public class BookingService {
             return bookingRepository.findByPetId(petId);
         }
         if (status != null && !status.isBlank()) {
-            return bookingRepository.findByStatusStatusName(status);
+            BookingStatus bookingStatus = bookingStatusRepository.findByStatusName(status)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid status: " + status));
+            return bookingRepository.findByStatus(bookingStatus);
         }
         if (bookingDate != null) {
             return bookingRepository.findByBookingDate(bookingDate);
@@ -156,8 +159,8 @@ public class BookingService {
         return bookingRepository.findByBookingDateBetween(startDate, endDate);
     }
 
-    public List<Booking> getBookingsByStatus(String statusName) {
-        return bookingRepository.findByStatusStatusName(statusName);
+    public List<Booking> getBookingsByStatus(BookingStatus status) {
+        return bookingRepository.findByStatus(status);
     }
 
     public boolean isTimeSlotAvailable(Long sitterId, LocalDate date, LocalTime startTime, LocalTime endTime) {

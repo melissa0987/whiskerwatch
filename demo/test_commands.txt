@@ -1,0 +1,366 @@
+
+whiskerwatch /
+so this is where i am at the project for the backend requiement (these are the files)
+now the next step on the project is to:
+
+In this stage of the project, we implemented authentication and authorization. On the backend, we used Spring Security with JWT (JSON Web Token) to handle secure login and request validation. The login endpoint issues a token after successful authentication, and this token is required to access protected API endpoints.
+
+help me set it up pls
+
+I'll help you implement JWT authentication and authorization for your Spring Boot pet sitting application. Let's set this up step by step.
+
+Step 1: Update Dependencies
+First, let's add the necessary JWT dependencies to your pom.xml:
+
+Updated pom.xml with JWT dependencies
+Code 
+Step 2: Create JWT Utility Class
+JwtUtil.java - JWT Token Management
+Code 
+Step 3: Create Custom UserDetailsService
+CustomUserDetailsService.java - User Authentication Service
+Code 
+Step 4: Create JWT Authentication Filter
+JwtAuthenticationFilter.java - JWT Request Filter
+Code 
+Step 5: Create Security Configuration
+SecurityConfig.java - Spring Security Configuration
+Code 
+Step 6: Create JWT Authentication Entry Point
+JwtAuthenticationEntryPoint.java - Handle Unauthorized Access
+Code 
+Step 7: Update AuthController with JWT
+Updated AuthController.java - JWT Authentication Controller
+Code 
+Step 8: Create Request/Response DTOs
+LoginRequest.java - Login Request DTO
+ 
+Continue
+
+LoginRequest.java - Login Request DTO
+Code ∙ Version 2 
+JwtResponse.java - JWT Response DTO
+Code 
+Step 9: Update Application Main Class
+Updated DemoApplication.java - Remove Security Exclusion
+Code 
+Step 10: Create Missing Repository Interface
+Missing Repository Interfaces
+Code 
+Step 11: Create Application Properties Configuration
+application.properties - JWT Configuration
+Code 
+Step 12: Update UserController to Remove Duplicate Login Method
+Updated UserController.java - Remove Duplicate Login
+Code 
+Step 13: Add Security Annotations to Other Controllers
+Updated PetController.java - With Security Annotations
+Code 
+Step 14: Add Security Helper Method to PetService
+Untitled
+Text 
+Step 15: Testing Your JWT Implementation
+Create a simple test file to verify your JWT implementation:
+
+API Test Examples - JWT Authentication Testing
+Code 
+Summary
+I've successfully implemented JWT authentication and authorization for your Spring Boot pet sitting application. Here's what has been set up:
+
+Key Components Added:
+JWT Utility Class (JwtUtil) - Handles token generation, validation, and extraction of claims
+Custom UserDetailsService - Integrates with your User entity for authentication
+JWT Authentication Filter - Intercepts requests and validates JWT tokens
+Security Configuration - Configures Spring Security with JWT and authorization rules
+Updated Controllers - Added security annotations and JWT-based authentication
+Request/Response DTOs - Added LoginRequest and JwtResponse for clean API contracts
+Security Features:
+Token-based Authentication: Users get JWT tokens after successful login
+Role-based Authorization: Different access levels for ADMIN vs CUSTOMER roles
+Method-level Security: Fine-grained access control using @PreAuthorize
+Resource Ownership: Users can only access their own resources (pets, bookings)
+CORS Configuration: Proper cross-origin setup for frontend integration
+API Endpoints:
+POST /api/auth/login - Login and get JWT token
+POST /api/auth/refresh - Refresh existing token
+POST /api/auth/validate - Validate token
+GET /api/users/me - Get current user profile
+All other endpoints now require authentication
+Next Steps:
+Update your database with the schema if you haven't already
+Update application.properties with your database credentials and JWT secret
+Test the endpoints using the provided examples
+Update your frontend to include the JWT token in API requests
+The implementation follows security best practices and provides a solid foundation for your pet sitting application's authentication system.
+
+when i add this:
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.properties.hibernate.format_sql=true
+
+# JWT Configuration
+jwt.secret=mySecretKey12345678901234567890123456789012345678901234567890
+jwt.expiration=86400000
+
+# Server Configuration
+server.port=8080
+
+# Logging Configuration
+logging.level.com.example.whiskerwatch.demo=DEBUG
+logging.level.org.springframework.security=DEBUG
+
+# CORS Configuration
+cors.allowed.origins=http://localhost:5173,http://localhost:3000
+
+i get this error:
+Caused by: org.hibernate.tool.schema.spi.SchemaManagementException: Schema-validation: wrong column type encountered in column [id] in table [booking_statuses]; found [serial (Types#INTEGER)], but expecting [bigint (Types#BIGINT)]
+
+The error is caused by a mismatch between your database schema and your JPA entity definitions. Your database uses SERIAL (which maps to INTEGER) for ID columns, but your JPA entities are using Long (which expects BIGINT).
+
+Here are two solutions:
+
+Solution 1: Update Your Database Schema (Recommended)
+Update your schema.sql to use BIGSERIAL instead of SERIAL:
+
+Updated schema.sql - Using BIGSERIAL for ID columns
+Code 
+Solution 2: Alternative - Update Application Properties (Quick Fix)
+If you don't want to recreate your database, you can change the Hibernate validation mode:
+
+Alternative application.properties - Skip Schema Validation
+Code 
+Recommended Approach
+I recommend Solution 1 (updating the schema) because:
+
+Type Safety: BIGSERIAL (BIGINT) provides a larger range for IDs
+Consistency: Your JPA entities expect Long (BIGINT) types
+Future-proofing: BIGINT can handle more records than INTEGER
+Best Practices: Most modern applications use BIGINT for primary keys
+Steps to Implement:
+Backup your current database (if you have important data)
+Drop and recreate your database using the updated schema
+Use the original application.properties with validate mode
+Restart your application
+Quick Command Sequence:
+bash
+# Connect to PostgreSQL
+psql -U your_username -d whiskerwatch
+
+# Run the updated schema
+\i path/to/your/updated_schema.sql
+
+# Exit PostgreSQL
+\q
+The updated schema uses BIGSERIAL for all ID columns, which will resolve the type mismatch error and ensure your JWT authentication system works properly.
+
+redo the test for powershell
+
+PowerShell API Test Examples - JWT Authentication Testing
+Code 
+
+
+
+
+
+# PowerShell API Testing Examples for JWT Authentication
+
+# Set base URL
+$baseUrl = "http://localhost:8080"
+
+# 1. User Registration (Public endpoint)
+Write-Host "=== Testing User Registration ===" -ForegroundColor Green
+
+$registerBody = @{
+    username = "testuser"
+    email = "test@example.com"
+    password = "password123"
+    roleId = 1
+    customerTypeId = 1
+    firstName = "Test"
+    lastName = "User"
+    phoneNumber = "555-1234"
+    address = "123 Test St"
+} | ConvertTo-Json
+
+try {
+    $registerResponse = Invoke-RestMethod -Uri "$baseUrl/api/users" -Method Post -Body $registerBody -ContentType "application/json"
+    Write-Host "Registration successful: $($registerResponse.message)" -ForegroundColor Yellow
+    Write-Host "User ID: $($registerResponse.userId)" -ForegroundColor Yellow
+}
+catch {
+    Write-Host "Registration failed: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.Exception.Response) {
+        $errorDetail = $_.Exception.Response.GetResponseStream()
+        $reader = New-Object System.IO.StreamReader($errorDetail)
+        $responseBody = $reader.ReadToEnd()
+        Write-Host "Error details: $responseBody" -ForegroundColor Red
+    }
+}
+
+# 2. Login to get JWT token
+Write-Host "`n=== Testing Login ===" -ForegroundColor Green
+
+$loginBody = @{
+    email = "sarah.jones@email.com"
+    password = "customer"
+} | ConvertTo-Json
+
+try {
+    $loginResponse = Invoke-RestMethod -Uri "$baseUrl/api/auth/login" -Method Post -Body $loginBody -ContentType "application/json"
+    
+    Write-Host "Login successful!" -ForegroundColor Yellow
+    Write-Host "Access Token: $($loginResponse.accessToken.Substring(0, 50))..." -ForegroundColor Yellow
+    Write-Host "User ID: $($loginResponse.userId)" -ForegroundColor Yellow
+    Write-Host "Email: $($loginResponse.email)" -ForegroundColor Yellow
+    Write-Host "Role: $($loginResponse.role)" -ForegroundColor Yellow
+    Write-Host "Customer Type: $($loginResponse.customerType)" -ForegroundColor Yellow
+    
+    # Store token for subsequent requests
+    $jwtToken = $loginResponse.accessToken
+    $headers = @{
+        "Authorization" = "Bearer $jwtToken"
+        "Content-Type" = "application/json"
+    }
+}
+catch {
+    Write-Host "Login failed: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.Exception.Response) {
+        $errorDetail = $_.Exception.Response.GetResponseStream()
+        $reader = New-Object System.IO.StreamReader($errorDetail)
+        $responseBody = $reader.ReadToEnd()
+        Write-Host "Error details: $responseBody" -ForegroundColor Red
+    }
+    exit
+}
+
+# 3. Get current user profile (protected endpoint)
+Write-Host "`n=== Testing Get Current User Profile ===" -ForegroundColor Green
+
+try {
+    $userProfile = Invoke-RestMethod -Uri "$baseUrl/api/users/me" -Method Get -Headers $headers
+    Write-Host "Current user profile retrieved successfully!" -ForegroundColor Yellow
+    Write-Host "Username: $($userProfile.username)" -ForegroundColor Yellow
+    Write-Host "Email: $($userProfile.email)" -ForegroundColor Yellow
+    Write-Host "Full Name: $($userProfile.firstName) $($userProfile.lastName)" -ForegroundColor Yellow
+}
+catch {
+    Write-Host "Get current user failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# 4. Get user's pets (protected endpoint)
+Write-Host "`n=== Testing Get User's Pets ===" -ForegroundColor Green
+
+try {
+    $pets = Invoke-RestMethod -Uri "$baseUrl/api/pets" -Method Get -Headers $headers
+    Write-Host "Retrieved $($pets.Count) pets" -ForegroundColor Yellow
+    if ($pets.Count -gt 0) {
+        foreach ($pet in $pets[0..2]) {  # Show first 3 pets
+            Write-Host "- Pet: $($pet.name) ($($pet.petTypeName)), Age: $($pet.age)" -ForegroundColor Cyan
+        }
+    }
+}
+catch {
+    Write-Host "Get pets failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# 5. Create a new pet (protected endpoint)
+Write-Host "`n=== Testing Create New Pet ===" -ForegroundColor Green
+
+$newPetBody = @{
+    name = "PowerShell Pet"
+    age = 2
+    breed = "Test Breed"
+    weight = 8.5
+    specialInstructions = "Created via PowerShell test"
+    ownerId = $loginResponse.userId
+    typeId = 2  # Cat
+} | ConvertTo-Json
+
+try {
+    Invoke-RestMethod -Uri "$baseUrl/api/pets" -Method Post -Body $newPetBody -Headers $headers
+    Write-Host "Pet created successfully!" -ForegroundColor Yellow
+}
+catch {
+    Write-Host "Create pet failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# 6. Validate token
+Write-Host "`n=== Testing Token Validation ===" -ForegroundColor Green
+
+try {
+    $validationResponse = Invoke-RestMethod -Uri "$baseUrl/api/auth/validate" -Method Post -Headers $headers
+    Write-Host "Token validation successful!" -ForegroundColor Yellow
+    Write-Host "Token is valid: $($validationResponse.valid)" -ForegroundColor Yellow
+}
+catch {
+    Write-Host "Token validation failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# 7. Refresh token
+Write-Host "`n=== Testing Token Refresh ===" -ForegroundColor Green
+
+try {
+    $refreshResponse = Invoke-RestMethod -Uri "$baseUrl/api/auth/refresh" -Method Post -Headers $headers
+    Write-Host "Token refresh successful!" -ForegroundColor Yellow
+    Write-Host "New token: $($refreshResponse.accessToken.Substring(0, 50))..." -ForegroundColor Yellow
+    
+    # Update headers with new token
+    $jwtToken = $refreshResponse.accessToken
+    $headers["Authorization"] = "Bearer $jwtToken"
+}
+catch {
+    Write-Host "Token refresh failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# 8. Get user's bookings
+Write-Host "`n=== Testing Get User's Bookings ===" -ForegroundColor Green
+
+try {
+    $bookings = Invoke-RestMethod -Uri "$baseUrl/api/bookings/owner/$($loginResponse.userId)" -Method Get -Headers $headers
+    Write-Host "Retrieved $($bookings.Count) bookings" -ForegroundColor Yellow
+    if ($bookings.Count -gt 0) {
+        foreach ($booking in $bookings[0..2]) {  # Show first 3 bookings
+            Write-Host "- Booking: $($booking.petName) on $($booking.bookingDate) ($($booking.statusName))" -ForegroundColor Cyan
+        }
+    }
+}
+catch {
+    Write-Host "Get bookings failed: $($_.Exception.Message)" -ForegroundColor Red
+}
+
+# 9. Test unauthorized access (should return 401)
+Write-Host "`n=== Testing Unauthorized Access ===" -ForegroundColor Green
+
+try {
+    $unauthorizedResponse = Invoke-RestMethod -Uri "$baseUrl/api/users/me" -Method Get
+    Write-Host "Unauthorized access succeeded (this should not happen!)" -ForegroundColor Red
+}
+catch {
+    if ($_.Exception.Response.StatusCode -eq 401) {
+        Write-Host "Unauthorized access correctly blocked (401)" -ForegroundColor Yellow
+    } else {
+        Write-Host "Unexpected error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
+# 10. Test with invalid token (should return 401)
+Write-Host "`n=== Testing Invalid Token ===" -ForegroundColor Green
+
+$invalidHeaders = @{
+    "Authorization" = "Bearer invalid_token_here"
+    "Content-Type" = "application/json"
+}
+
+try {
+    $invalidResponse = Invoke-RestMethod -Uri "$baseUrl/api/users/me" -Method Get -Headers $invalidHeaders
+    Write-Host "Invalid token access succeeded (this should not happen!)" -ForegroundColor Red
+}
+catch {
+    if ($_.Exception.Response.StatusCode -eq 401) {
+        Write-Host "Invalid token correctly rejected (401)" -ForegroundColor Yellow
+    } else {
+        Write-Host "Unexpected error: $($_.Exception.Message)" -ForegroundColor Red
+    }
+}

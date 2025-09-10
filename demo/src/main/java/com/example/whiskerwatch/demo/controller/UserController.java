@@ -6,6 +6,9 @@ import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +17,7 @@ import com.example.whiskerwatch.demo.controller.request.UpdateGroup;
 import com.example.whiskerwatch.demo.controller.request.UserRequest;
 import com.example.whiskerwatch.demo.controller.response.UserResponse;
 import com.example.whiskerwatch.demo.model.User;
+import com.example.whiskerwatch.demo.security.CustomUserDetailsService;
 import com.example.whiskerwatch.demo.service.UserService;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -33,6 +37,7 @@ public class UserController {
     }
 
     @PutMapping("/{userId}/password")
+    @PreAuthorize("hasRole('ADMIN') or authentication.principal.userId == #userId")
     public ResponseEntity<?> changePassword(
             @PathVariable Long userId,
             @RequestBody @Validated PasswordChangeRequest passwordRequest) {
@@ -65,8 +70,9 @@ public class UserController {
         }
     }
 
-    //Get all users
+    // Get all users - Admin only
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserResponse>> getUsers(
             @RequestParam(name = "email", required = false) String email,
             @RequestParam(name = "customerType", required = false) String customerType,
@@ -79,8 +85,9 @@ public class UserController {
         );
     }
 
-    // âœ… Get user by ID
+    // Get user by ID - Admin or user themselves
     @GetMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or authentication.principal.userId == #userId")
     public ResponseEntity<UserResponse> getUser(@PathVariable Long userId) {
         return userService.getUser(userId)
                 .map(UserResponse::toResponse)
@@ -88,72 +95,82 @@ public class UserController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // âœ… Register (Signup) user
-    @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody @Validated(CreateGroup.class) UserRequest userRequest) {
-        User savedUser = userService.createUser(
-                userRequest.getUsername(),
-                userRequest.getEmail(),
-                userRequest.getPassword(),
-                userRequest.getRoleId(),           // null is OK â†’ defaults to CUSTOMER
-                userRequest.getCustomerTypeId(),
-                userRequest.getFirstName(),
-                userRequest.getLastName(),
-                userRequest.getPhoneNumber(),
-                userRequest.getAddress()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(Map.of(
-                        "message", "User registered successfully",
-                        "userId", savedUser.getId()
-                ));
+    // Get current user profile
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetailsService.CustomUserPrincipal) {
+            CustomUserDetailsService.CustomUserPrincipal userPrincipal = 
+                (CustomUserDetailsService.CustomUserPrincipal) authentication.getPrincipal();
+            return ResponseEntity.ok(UserResponse.toResponse(userPrincipal.getUser()));
+        }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    // âœ… Update user
+    // Register (Signup) user - Public endpoint
+    @PostMapping
+    public ResponseEntity<?> createUser(@RequestBody @Validated(CreateGroup.class) UserRequest userRequest) {
+        try {
+            User savedUser = userService.createUser(
+                    userRequest.getUsername(),
+                    userRequest.getEmail(),
+                    userRequest.getPassword(),
+                    userRequest.getRoleId(),           // null is OK – defaults to CUSTOMER
+                    userRequest.getCustomerTypeId(),
+                    userRequest.getFirstName(),
+                    userRequest.getLastName(),
+                    userRequest.getPhoneNumber(),
+                    userRequest.getAddress()
+            );
+
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(Map.of(
+                            "message", "User registered successfully",
+                            "userId", savedUser.getId()
+                    ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    // Update user - Admin or user themselves
     @PutMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or authentication.principal.userId == #userId")
     public ResponseEntity<?> updateUser(
             @PathVariable Long userId,
             @RequestBody @Validated(UpdateGroup.class) UserRequest userRequest) {
-        userService.updateUser(
-                userId,
-                userRequest.getUsername(),
-                userRequest.getEmail(),
-                userRequest.getPassword(),
-                userRequest.getRoleId(),
-                userRequest.getCustomerTypeId(),
-                userRequest.getFirstName(),
-                userRequest.getLastName(),
-                userRequest.getPhoneNumber(),
-                userRequest.getAddress(),
-                userRequest.getIsActive()
-        );
-        return ResponseEntity.ok(Map.of("message", "User updated successfully"));
-    }
-
-    // âœ… Delete user
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
-        userService.deleteUser(userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest) {
-        String email = loginRequest.get("email");
-        String password = loginRequest.get("password");
-
-        var userOpt = userService.getUserByEmail(email);
-        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                .body(Map.of("message", "Invalid credentials"));
+        try {
+            userService.updateUser(
+                    userId,
+                    userRequest.getUsername(),
+                    userRequest.getEmail(),
+                    userRequest.getPassword(),
+                    userRequest.getRoleId(),
+                    userRequest.getCustomerTypeId(),
+                    userRequest.getFirstName(),
+                    userRequest.getLastName(),
+                    userRequest.getPhoneNumber(),
+                    userRequest.getAddress(),
+                    userRequest.getIsActive()
+            );
+            return ResponseEntity.ok(Map.of("message", "User updated successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
         }
+    }
 
-        return ResponseEntity.ok(Map.of(
-            "message", "Login successful",
-            "userId", userOpt.get().getId(),
-            "role", userOpt.get().getRole().getRoleName()
-        ));
+    // Delete user - Admin only
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+        try {
+            userService.deleteUser(userId);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

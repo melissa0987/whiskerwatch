@@ -1,6 +1,8 @@
 package com.example.whiskerwatch.demo.repository;
 
 import com.example.whiskerwatch.demo.model.Booking;
+import com.example.whiskerwatch.demo.model.BookingStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -21,7 +23,7 @@ public interface BookingJPARepository extends JpaRepository<Booking, Long> {
     List<Booking> findByPetId(Long petId);
 
     // Find bookings by status name
-    List<Booking> findByStatusStatusName(String statusName);
+    List<Booking> findByStatus(BookingStatus status);
 
     // Find bookings by booking date
     List<Booking> findByBookingDate(LocalDate bookingDate);
