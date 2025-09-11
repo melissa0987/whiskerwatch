@@ -21,7 +21,11 @@ import com.example.whiskerwatch.demo.security.CustomUserDetailsService;
 import com.example.whiskerwatch.demo.service.UserService;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import com.example.whiskerwatch.demo.controller.request.PasswordChangeRequest;
+import com.example.whiskerwatch.demo.controller.request.PasswordChangeRequest; 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import java.util.Map;
+import java.util.Optional;
 
 @Validated
 @RestController
@@ -142,6 +146,8 @@ public class UserController {
             @PathVariable Long userId,
             @RequestBody @Validated(UpdateGroup.class) UserRequest userRequest) {
         try {
+            System.out.println("Updating user " + userId + " with data: " + userRequest);
+            
             userService.updateUser(
                     userId,
                     userRequest.getUsername(),
@@ -155,22 +161,88 @@ public class UserController {
                     userRequest.getAddress(),
                     userRequest.getIsActive()
             );
-            return ResponseEntity.ok(Map.of("message", "User updated successfully"));
+            
+            System.out.println("User " + userId + " updated successfully");
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true, 
+                "message", "User updated successfully"
+            ));
         } catch (IllegalArgumentException e) {
+            System.err.println("User update validation error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", e.getMessage()));
+                    .body(Map.of(
+                        "success", false, 
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            System.err.println("User update error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false, 
+                        "message", "Failed to update user: " + e.getMessage()
+                    ));
         }
     }
 
-    // Delete user - Admin only
+
     @DeleteMapping("/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+    @PreAuthorize("hasRole('ADMIN') or authentication.principal.userId == #userId")
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId, @RequestBody(required = false) Map<String, String> deleteRequest) {
         try {
+            System.out.println("Delete request for user " + userId + " with data: " + deleteRequest);
+            
+            // Get current user from security context
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            // If it's the user deleting their own account, verify password
+            if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetailsService.CustomUserPrincipal) {
+                CustomUserDetailsService.CustomUserPrincipal userPrincipal = 
+                    (CustomUserDetailsService.CustomUserPrincipal) authentication.getPrincipal();
+                
+                // If user is deleting their own account, require password verification
+                if (userPrincipal.getUserId().equals(userId) && deleteRequest != null) {
+                    String password = deleteRequest.get("password");
+                    if (password != null && !password.isEmpty()) {
+                        // Verify password
+                        Optional<User> userOpt = userService.getUser(userId);
+                        if (userOpt.isPresent()) {
+                            User user = userOpt.get();
+                            if (!passwordEncoder.matches(password, user.getPassword())) {
+                                System.err.println("Invalid password for user deletion: " + userId);
+                                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                        .body(Map.of("success", false, "message", "Invalid password"));
+                            }
+                        } else {
+                            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                    .body(Map.of("success", false, "message", "User not found"));
+                        }
+                    } else {
+                        System.err.println("Password required for user deletion: " + userId);
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(Map.of("success", false, "message", "Password is required"));
+                    }
+                }
+            }
+            
+            System.out.println("Proceeding with user deletion: " + userId);
             userService.deleteUser(userId);
-            return ResponseEntity.noContent().build();
+            System.out.println("User " + userId + " deleted successfully");
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true, 
+                "message", "Account deleted successfully"
+            ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            System.err.println("User not found for deletion: " + userId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("success", false, "message", "User not found"));
+        } catch (Exception e) {
+            System.err.println("User deletion error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "Failed to delete account"));
         }
     }
 }

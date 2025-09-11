@@ -124,9 +124,12 @@ public class BookingController {
 
     @PutMapping("/{bookingId}")
     public ResponseEntity<?> updateBooking(@PathVariable Long bookingId,
-                                      @RequestBody @Validated(UpdateGroup.class) BookingRequest bookingRequest) {
+                                        @RequestBody @Validated(UpdateGroup.class) BookingRequest bookingRequest) {
         try {
-            bookingService.updateBooking(
+            // Log the incoming request for debugging
+            System.out.println("Updating booking " + bookingId + " with data: " + bookingRequest);
+            
+            Booking updatedBooking = bookingService.updateBooking(
                     bookingId,
                     bookingRequest.getBookingDate(),
                     bookingRequest.getStartTime(),
@@ -136,20 +139,25 @@ public class BookingController {
                     bookingRequest.getSpecialRequests(),
                     bookingRequest.getPetId(),
                     bookingRequest.getOwnerId(),
-                    bookingRequest.getSitterId()
+                    bookingRequest.getSitterId() // This can be null
             );
+            
             return ResponseEntity.ok()
                     .body(Map.of(
                         "success", true,
-                        "message", "Booking updated successfully"
+                        "message", "Booking updated successfully",
+                        "booking", BookingResponse.toResponse(updatedBooking)
                     ));
         } catch (IllegalArgumentException e) {
+            System.err.println("Booking update error: " + e.getMessage());
             return ResponseEntity.badRequest()
                     .body(Map.of(
                         "success", false,
                         "message", e.getMessage()
                     ));
         } catch (Exception e) {
+            System.err.println("Unexpected booking update error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of(
                         "success", false,

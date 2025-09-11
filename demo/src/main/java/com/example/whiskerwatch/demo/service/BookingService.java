@@ -105,10 +105,10 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
-    public void updateBooking(@NonNull Long bookingId, @NonNull LocalDate bookingDate,
+    public Booking updateBooking(@NonNull Long bookingId, @NonNull LocalDate bookingDate,
                               @NonNull LocalTime startTime, @NonNull LocalTime endTime,
                               @NonNull Long statusId, BigDecimal totalCost, String specialRequests,
-                              @NonNull Long petId, @NonNull Long ownerId, @NonNull Long sitterId) {
+                              @NonNull Long petId, @NonNull Long ownerId, Long sitterId) {
 
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found"));
@@ -119,12 +119,17 @@ public class BookingService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Owner not found"));
 
-        User sitter = userRepository.findById(sitterId)
-                .orElseThrow(() -> new IllegalArgumentException("Sitter not found"));
+        // Handle sitter - can be null for PENDING bookings
+        User sitter = null;
+        if (sitterId != null) {
+            sitter = userRepository.findById(sitterId)
+                    .orElseThrow(() -> new IllegalArgumentException("Sitter not found"));
+        }
 
         BookingStatus status = bookingStatusRepository.findById(statusId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking status not found"));
 
+        // Update booking fields
         booking.setBookingDate(bookingDate);
         booking.setStartTime(startTime);
         booking.setEndTime(endTime);
@@ -133,9 +138,9 @@ public class BookingService {
         booking.setSpecialRequests(specialRequests);
         booking.setPet(pet);
         booking.setOwner(owner);
-        booking.setSitter(sitter);
+        booking.setSitter(sitter); // This can be null
 
-        bookingRepository.save(booking);
+        return bookingRepository.save(booking);
     }
 
     public void updateBookingStatus(@NonNull Long bookingId, @NonNull Long statusId) {
