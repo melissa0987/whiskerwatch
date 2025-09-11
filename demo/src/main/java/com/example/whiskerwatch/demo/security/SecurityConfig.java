@@ -65,14 +65,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // User registration
+                .requestMatchers(HttpMethod.POST, "/api/users").permitAll() // Allow signup
                 .requestMatchers("/api/pet-types").permitAll() // Pet types for registration
                 
                 // Admin endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 
                 // Customer endpoints - require authentication
-                .requestMatchers("/api/users/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN") // Only admin can get all users
+                .requestMatchers("/api/users/**").authenticated() // Other user operations require auth
                 .requestMatchers("/api/pets/**").authenticated()
                 .requestMatchers("/api/bookings/**").authenticated()
                 

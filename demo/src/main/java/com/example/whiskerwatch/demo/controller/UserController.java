@@ -115,6 +115,8 @@ public class UserController {
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody @Validated(CreateGroup.class) UserRequest userRequest) {
         try {
+            System.out.println("Creating user with data: " + userRequest);
+            
             User savedUser = userService.createUser(
                     userRequest.getUsername(),
                     userRequest.getEmail(),
@@ -127,19 +129,34 @@ public class UserController {
                     userRequest.getAddress()
             );
 
+            System.out.println("User created successfully with ID: " + savedUser.getId());
+
             return ResponseEntity
                     .status(HttpStatus.CREATED)
                     .body(Map.of(
+                            "success", true,
                             "message", "User registered successfully",
                             "userId", savedUser.getId()
                     ));
         } catch (IllegalArgumentException e) {
+            System.err.println("User creation validation error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", e.getMessage()));
+                    .body(Map.of(
+                            "success", false,
+                            "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            System.err.println("User creation error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "success", false,
+                            "message", "Failed to create user: " + e.getMessage()
+                    ));
         }
     }
 
-    // Update user - Admin or user themselves
+    
     @PutMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN') or authentication.principal.userId == #userId")
     public ResponseEntity<?> updateUser(

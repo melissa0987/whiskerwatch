@@ -9,7 +9,7 @@ public class PetTypeDTO {
         this.typeName = typeName;
     }
 
-    // Getters and setters (or use Lombok @Data for simplicity)
+    
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
