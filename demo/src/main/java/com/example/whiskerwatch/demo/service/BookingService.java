@@ -71,10 +71,10 @@ public class BookingService {
         return bookingRepository.findByPetId(petId);
     }
 
-    public void createBooking(@NonNull LocalDate bookingDate, @NonNull LocalTime startTime,
-                              @NonNull LocalTime endTime, @NonNull Long statusId, BigDecimal totalCost,
-                              String specialRequests, @NonNull Long petId, @NonNull Long ownerId,
-                              Long sitterId) {
+    public Booking createBooking(@NonNull LocalDate bookingDate, @NonNull LocalTime startTime,
+                                @NonNull LocalTime endTime, @NonNull Long statusId, BigDecimal totalCost,
+                                String specialRequests, @NonNull Long petId, @NonNull Long ownerId,
+                                Long sitterId) {
 
         Pet pet = petRepository.findById(petId)
                 .orElseThrow(() -> new IllegalArgumentException("Pet not found"));
@@ -92,17 +92,17 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Booking status not found"));
 
         Booking booking = new Booking();
-            booking.setBookingDate(bookingDate);
-            booking.setStartTime(startTime);
-            booking.setEndTime(endTime);
-            booking.setStatus(status);
-            booking.setPet(pet);
-            booking.setOwner(owner);
-            booking.setSitter(sitter);
-            booking.setTotalCost(totalCost);
-            booking.setSpecialRequests(specialRequests);
+        booking.setBookingDate(bookingDate);
+        booking.setStartTime(startTime);
+        booking.setEndTime(endTime);
+        booking.setStatus(status);
+        booking.setPet(pet);
+        booking.setOwner(owner);
+        booking.setSitter(sitter);
+        booking.setTotalCost(totalCost);
+        booking.setSpecialRequests(specialRequests);
 
-            bookingRepository.save(booking);
+        return bookingRepository.save(booking);
     }
 
     public void updateBooking(@NonNull Long bookingId, @NonNull LocalDate bookingDate,

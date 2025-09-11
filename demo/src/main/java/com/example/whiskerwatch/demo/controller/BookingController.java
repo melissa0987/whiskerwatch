@@ -4,6 +4,7 @@ import com.example.whiskerwatch.demo.controller.request.BookingRequest;
 import com.example.whiskerwatch.demo.controller.request.CreateGroup;
 import com.example.whiskerwatch.demo.controller.request.UpdateGroup;
 import com.example.whiskerwatch.demo.controller.response.BookingResponse;
+import com.example.whiskerwatch.demo.model.Booking;
 import com.example.whiskerwatch.demo.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @Validated
 @RestController
@@ -85,9 +87,9 @@ public class BookingController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createBooking(@RequestBody @Validated(CreateGroup.class) BookingRequest bookingRequest) {
+    public ResponseEntity<?> createBooking(@RequestBody @Validated(CreateGroup.class) BookingRequest bookingRequest) {
         try {
-            bookingService.createBooking(
+            Booking savedBooking = bookingService.createBooking(
                     bookingRequest.getBookingDate(),
                     bookingRequest.getStartTime(),
                     bookingRequest.getEndTime(),
@@ -98,15 +100,31 @@ public class BookingController {
                     bookingRequest.getOwnerId(),
                     bookingRequest.getSitterId()
             );
-            return ResponseEntity.status(HttpStatus.CREATED).build();
+            
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Booking created successfully",
+                        "booking", BookingResponse.toResponse(savedBooking)
+                    ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to create booking: " + e.getMessage()
+                    ));
         }
     }
 
     @PutMapping("/{bookingId}")
-    public ResponseEntity<Void> updateBooking(@PathVariable Long bookingId,
-                                              @RequestBody @Validated(UpdateGroup.class) BookingRequest bookingRequest) {
+    public ResponseEntity<?> updateBooking(@PathVariable Long bookingId,
+                                      @RequestBody @Validated(UpdateGroup.class) BookingRequest bookingRequest) {
         try {
             bookingService.updateBooking(
                     bookingId,
@@ -120,30 +138,72 @@ public class BookingController {
                     bookingRequest.getOwnerId(),
                     bookingRequest.getSitterId()
             );
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Booking updated successfully"
+                    ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to update booking: " + e.getMessage()
+                    ));
         }
     }
 
     @PatchMapping("/{bookingId}/status")
-    public ResponseEntity<Void> updateBookingStatus(@PathVariable Long bookingId,
-                                                    @RequestParam Long statusId) {
+    public ResponseEntity<?> updateBookingStatus(@PathVariable Long bookingId,
+                                            @RequestParam Long statusId) {
         try {
             bookingService.updateBookingStatus(bookingId, statusId);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Booking status updated successfully"
+                    ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to update booking status: " + e.getMessage()
+                    ));
         }
     }
 
     @DeleteMapping("/{bookingId}")
-    public ResponseEntity<Void> deleteBooking(@PathVariable Long bookingId) {
+    public ResponseEntity<?> deleteBooking(@PathVariable Long bookingId) {
         try {
             bookingService.deleteBooking(bookingId);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Booking deleted successfully"
+                    ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to delete booking: " + e.getMessage()
+                    ));
         }
     }
 

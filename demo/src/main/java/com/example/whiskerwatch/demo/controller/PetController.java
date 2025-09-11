@@ -1,7 +1,7 @@
 package com.example.whiskerwatch.demo.controller;
 
-
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,13 +15,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.whiskerwatch.demo.controller.request.CreateGroup;
 import com.example.whiskerwatch.demo.controller.request.PetRequest;
 import com.example.whiskerwatch.demo.controller.request.UpdateGroup;
 import com.example.whiskerwatch.demo.controller.response.PetResponse;
+import com.example.whiskerwatch.demo.model.Pet;
 import com.example.whiskerwatch.demo.service.PetService;
 
 @Validated
@@ -31,7 +31,6 @@ import com.example.whiskerwatch.demo.service.PetService;
 public class PetController {
     private final PetService petService;
     
-
     public PetController(PetService petService) {
         this.petService = petService;
     }
@@ -49,9 +48,10 @@ public class PetController {
 
     @GetMapping("/{petId}")
     public ResponseEntity<PetResponse> getPet(@PathVariable Long petId) {
-        return ResponseEntity.ok(petService.getPet(petId)
+        return petService.getPet(petId)
                 .map(PetResponse::toResponse)
-                .orElse(null));
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/owner/{ownerId}")
@@ -63,9 +63,9 @@ public class PetController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createPet(@RequestBody @Validated(CreateGroup.class) PetRequest petRequest) {
-        petService.createPet(
+    public ResponseEntity<?> createPet(@RequestBody @Validated(CreateGroup.class) PetRequest petRequest) {
+        try {
+            Pet savedPet = petService.createPet(
                 petRequest.getName(),
                 petRequest.getAge(),
                 petRequest.getBreed(),
@@ -73,14 +73,34 @@ public class PetController {
                 petRequest.getSpecialInstructions(),
                 petRequest.getOwnerId(),
                 petRequest.getTypeId()
-        );
+            );
+            
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Pet created successfully",
+                        "pet", PetResponse.toResponse(savedPet)
+                    ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to create pet: " + e.getMessage()
+                    ));
+        }
     }
 
     @PutMapping("/{petId}")
-    @ResponseStatus(HttpStatus.OK)
-    public void updatePet(@PathVariable Long petId,
+    public ResponseEntity<?> updatePet(@PathVariable Long petId,
                           @RequestBody @Validated(UpdateGroup.class) PetRequest petRequest) {
-        petService.updatePet(
+        try {
+            petService.updatePet(
                 petId,
                 petRequest.getName(),
                 petRequest.getAge(),
@@ -90,12 +110,49 @@ public class PetController {
                 petRequest.getOwnerId(),
                 petRequest.getTypeId(),
                 petRequest.getIsActive()
-        );
+            );
+            
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Pet updated successfully"
+                    ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to update pet: " + e.getMessage()
+                    ));
+        }
     }
 
     @DeleteMapping("/{petId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletePet(@PathVariable Long petId) {
-        petService.deletePet(petId);
+    public ResponseEntity<?> deletePet(@PathVariable Long petId) {
+        try {
+            petService.deletePet(petId);
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                        "success", true,
+                        "message", "Pet deleted successfully"
+                    ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                        "success", false,
+                        "message", e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                        "success", false,
+                        "message", "Failed to delete pet: " + e.getMessage()
+                    ));
+        }
     }
 }

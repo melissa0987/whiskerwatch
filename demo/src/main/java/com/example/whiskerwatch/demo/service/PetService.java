@@ -1,6 +1,5 @@
 package com.example.whiskerwatch.demo.service;
 
-
 import com.example.whiskerwatch.demo.model.Pet;
 import com.example.whiskerwatch.demo.model.User;
 import com.example.whiskerwatch.demo.model.PetType;
@@ -50,7 +49,7 @@ public class PetService {
         return petRepository.findByOwnerId(ownerId);
     }
 
-    public void createPet(@NonNull String name, Integer age, String breed, BigDecimal weight,
+    public Pet createPet(@NonNull String name, Integer age, String breed, BigDecimal weight,
                           String specialInstructions, @NonNull Long ownerId, @NonNull Long typeId) {
 
         User owner = userRepository.findById(ownerId)
@@ -60,10 +59,10 @@ public class PetService {
                 .orElseThrow(() -> new IllegalArgumentException("Pet type not found"));
 
         Pet pet = new Pet(name, age, breed, weight, specialInstructions, owner, petType);
-        petRepository.save(pet);
+        return petRepository.save(pet);
     }
 
-    public void updatePet(@NonNull Long petId, @NonNull String name, Integer age, String breed,
+    public Pet updatePet(@NonNull Long petId, @NonNull String name, Integer age, String breed,
                           BigDecimal weight, String specialInstructions, @NonNull Long ownerId,
                           @NonNull Long typeId, Boolean isActive) {
 
@@ -87,7 +86,7 @@ public class PetService {
             pet.setIsActive(isActive);
         }
 
-        petRepository.save(pet);
+        return petRepository.save(pet);
     }
 
     public void deletePet(@NonNull Long petId) {
