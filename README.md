@@ -27,6 +27,7 @@ The `schema.sql` file contains a complete PostgreSQL database structure includin
 - Sitter verification and ratings
 
 
+
 ## Related Projects
 
 - [WhiskerWatch React Frontend](https://github.com/melissa0987/whiskerwatch-react-app) - Client-side interface
